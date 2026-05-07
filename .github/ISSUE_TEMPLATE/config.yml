@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation du projet
+    url: https://github.com/thaokluu/CICD-M1/blob/main/README.md
+    about: Consulte le README avant d'ouvrir une issue.
