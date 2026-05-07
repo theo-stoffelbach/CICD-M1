@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMe, getHistory, logout } from '../api/client'
+import { getMe, getHistory, getLeaderboards, logout } from '../api/client'
 
-const MOCK = { streak: 7, bestStreak: 12 }
+const EMPTY_LEADERBOARDS = {
+  current_score: [],
+  best_streak: [],
+  average_score: [],
+  daily_challenge: [],
+}
+
+const LEADERBOARD_VIEWS = [
+  { key: 'current_score', label: 'Score actuel', metric: 'total_score', unit: 'points', empty: 'Aucun score classé' },
+  { key: 'best_streak', label: 'Record série', metric: 'best_streak', unit: 'jours', empty: 'Aucune série classée' },
+  { key: 'average_score', label: 'Score moyen', metric: 'average_score', unit: 'pts/partie', empty: 'Aucune moyenne classée' },
+  { key: 'daily_challenge', label: 'Défi du jour', metric: 'score', unit: 'points', empty: 'Aucun défi joué aujourd’hui' },
+]
 
 function TabButton({ active, onClick, label }) {
   return (
-    <button onClick={onClick} className={`flex-1 py-[0.45rem] rounded-lg font-headline font-bold text-xs tracking-wider transition-colors ${active ? 'bg-primary-container text-on-primary-container' : 'text-outline-variant hover:text-on-surface-variant'}`}>
+    <button onClick={onClick} className={`px-2.5 py-[0.45rem] rounded-lg font-headline font-bold text-xs tracking-wider transition-colors whitespace-nowrap ${active ? 'bg-primary-container text-on-primary-container' : 'text-outline-variant hover:text-on-surface-variant'}`}>
       {label}
     </button>
   )
@@ -15,8 +27,10 @@ function TabButton({ active, onClick, label }) {
 export default function ProfilePage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('stats')
+  const [leaderboardTab, setLeaderboardTab] = useState('current_score')
   const [user, setUser] = useState(null)
   const [history, setHistory] = useState([])
+  const [leaderboards, setLeaderboards] = useState(EMPTY_LEADERBOARDS)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
@@ -32,6 +46,11 @@ export default function ProfilePage() {
         const [u, h] = await Promise.all([getMe(), getHistory()])
         setUser(u)
         setHistory(h)
+        try {
+          setLeaderboards(await getLeaderboards())
+        } catch {
+          setLeaderboards(EMPTY_LEADERBOARDS)
+        }
       } catch {
         logout()
         navigate('/auth')
@@ -48,6 +67,14 @@ export default function ProfilePage() {
   const gamesPlayed = user.games_played || 0
   const gamesWon = user.games_won || 0
   const winRate = Math.round(user.win_rate || 0)
+  const totalScore = user.total_score || 0
+  const currentStreak = user.current_streak || 0
+  const bestStreak = user.best_streak || 0
+  const achievements = user.achievements || []
+  const unlockedAchievements = achievements.filter(a => a.unlocked).length
+  const currentRank = leaderboards.current_score.find(entry => entry.user_id === user.id)?.rank
+  const activeLeaderboard = LEADERBOARD_VIEWS.find(view => view.key === leaderboardTab) || LEADERBOARD_VIEWS[0]
+  const leaderboardRows = leaderboards[activeLeaderboard.key] || []
 
   const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
   let totalGuesses = 0
@@ -70,6 +97,7 @@ export default function ProfilePage() {
   const filteredHistory = filter === 'all' ? history : filter === 'won' ? history.filter(h => h.is_won) : history.filter(h => !h.is_won)
 
   const joined = new Date(user.created_at).toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
+  const numberFmt = new Intl.NumberFormat('fr-FR')
 
   return (
     <div className="min-h-screen flex flex-col items-center pb-10 bg-surface text-on-surface font-body">
@@ -113,26 +141,19 @@ export default function ProfilePage() {
               <p className="text-xs text-on-surface-variant font-body mt-1">Membre depuis {joined}</p>
             </div>
           </div>
-          {/* Streak banner */}
-          <div className="mt-4 p-3 rounded-xl bg-surface-container border border-outline-variant flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🔥</span>
-              <div>
-                <p className="font-headline font-extrabold text-lg text-secondary leading-none">{MOCK.streak}</p>
-                <p className="text-[0.7rem] text-outline font-headline font-semibold tracking-wider uppercase">Jours consécutifs</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="font-headline font-extrabold text-lg text-primary leading-none">{MOCK.bestStreak}</p>
-              <p className="text-[0.7rem] text-outline font-headline font-semibold tracking-wider uppercase">Record</p>
-            </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <HeroMetric icon="leaderboard" value={numberFmt.format(totalScore)} label="Score" />
+            <HeroMetric icon="local_fire_department" value={currentStreak} label="Série" color="text-secondary" />
+            <HeroMetric icon="workspace_premium" value={bestStreak} label="Record" />
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1.5 bg-surface-container-low rounded-xl border border-outline-variant fade-up" style={{ animationDelay: '0.06s' }}>
-          <TabButton active={tab === 'stats'} onClick={() => setTab('stats')} label="Statistiques" />
+        <div className="flex flex-wrap gap-1 p-1.5 bg-surface-container-low rounded-xl border border-outline-variant fade-up" style={{ animationDelay: '0.06s' }}>
+          <TabButton active={tab === 'stats'} onClick={() => setTab('stats')} label="Stats" />
           <TabButton active={tab === 'history'} onClick={() => setTab('history')} label="Historique" />
+          <TabButton active={tab === 'leaderboard'} onClick={() => setTab('leaderboard')} label="Classement" />
+          <TabButton active={tab === 'badges'} onClick={() => setTab('badges')} label="Badges" />
           <TabButton active={tab === 'settings'} onClick={() => setTab('settings')} label="Paramètres" />
         </div>
 
@@ -142,10 +163,13 @@ export default function ProfilePage() {
             <div className="fade-up" style={{ animationDelay: '0.1s' }}>
               <p className="section-title">Vue d'ensemble</p>
               <div className="grid grid-cols-2 gap-2.5">
-                <StatCard value={gamesPlayed} label="Parties jouées" color="text-primary" delay="0.12s" />
+                <StatCard value={numberFmt.format(totalScore)} label="Score total" color="text-primary" delay="0.12s" />
+                <StatCard value={gamesPlayed} label="Parties jouées" color="text-primary" delay="0.14s" />
                 <StatCard value={`${winRate}%`} label="Taux de victoire" color="text-primary" delay="0.16s" />
                 <StatCard value={avg} label="Essais moyens" color="text-secondary" delay="0.20s" />
                 <StatCard value={gamesWon} label="Victoires totales" color="text-secondary" delay="0.24s" />
+                <StatCard value={currentRank ? `#${currentRank}` : '-'} label="Classement" color="text-secondary" delay="0.28s" />
+                <StatCard value={`${unlockedAchievements}/${achievements.length || 0}`} label="Badges" color="text-primary" delay="0.32s" />
               </div>
             </div>
 
@@ -208,17 +232,73 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-headline font-extrabold text-sm text-on-surface">{h.secret_word.toUpperCase()}</span>
                       <span className="text-xs text-outline-variant">{h.language === 'fr' ? '🇫🇷' : '🇬🇧'}</span>
+                      {h.mode === 'daily' && (
+                        <span className="text-[0.62rem] font-headline font-extrabold uppercase text-secondary">Défi</span>
+                      )}
                     </div>
                     <p className="text-xs text-outline-variant font-body">{new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     {h.is_won ? (
-                      <span className="font-headline font-extrabold text-base text-primary">{h.attempts_count}<span className="text-xs text-outline-variant">/6</span></span>
+                      <div>
+                        <span className="font-headline font-extrabold text-base text-primary">{h.attempts_count}<span className="text-xs text-outline-variant">/6</span></span>
+                        <p className="text-[0.68rem] font-headline font-bold text-secondary">+{h.score}</p>
+                      </div>
                     ) : (
                       <span className="material-symbols-outlined text-error text-xl">close</span>
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Leaderboard tab */}
+        {tab === 'leaderboard' && (
+          <div className="flex flex-col gap-3 fade-up">
+            <p className="section-title !mb-0">Classement global</p>
+            <div className="flex flex-wrap gap-1 p-1.5 bg-surface-container-low rounded-xl border border-outline-variant">
+              {LEADERBOARD_VIEWS.map(view => (
+                <button
+                  key={view.key}
+                  onClick={() => setLeaderboardTab(view.key)}
+                  className={`px-2.5 py-[0.45rem] rounded-lg font-headline font-bold text-xs transition-colors whitespace-nowrap ${leaderboardTab === view.key ? 'bg-primary-container text-on-primary-container' : 'text-outline-variant hover:text-on-surface-variant'}`}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2">
+              {leaderboardRows.length === 0 ? (
+                <p className="text-center text-outline-variant font-headline text-sm py-8">{activeLeaderboard.empty}</p>
+              ) : leaderboardRows.map(entry => (
+                activeLeaderboard.key === 'daily_challenge' ? (
+                  <DailyLeaderboardRow key={entry.user_id} entry={entry} isCurrentUser={entry.user_id === user.id} />
+                ) : (
+                  <LeaderboardRow
+                    key={entry.user_id}
+                    entry={entry}
+                    isCurrentUser={entry.user_id === user.id}
+                    metric={activeLeaderboard.metric}
+                    unit={activeLeaderboard.unit}
+                  />
+                )
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Badges tab */}
+        {tab === 'badges' && (
+          <div className="flex flex-col gap-3 fade-up">
+            <div className="flex items-center justify-between">
+              <p className="section-title !mb-0">Succès débloqués</p>
+              <span className="text-xs font-headline font-extrabold text-primary">{unlockedAchievements}/{achievements.length}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {achievements.map((achievement, i) => (
+                <BadgeCard key={achievement.code} achievement={achievement} delay={`${i * 0.05}s`} />
               ))}
             </div>
           </div>
@@ -284,12 +364,92 @@ export default function ProfilePage() {
   )
 }
 
+function HeroMetric({ icon, value, label, color = 'text-primary' }) {
+  return (
+    <div className="p-3 rounded-xl bg-surface-container border border-outline-variant flex flex-col items-center gap-1 min-w-0">
+      <span className={`material-symbols-outlined text-xl ${color}`}>{icon}</span>
+      <p className={`font-headline font-extrabold text-lg ${color} leading-none truncate max-w-full`}>{value}</p>
+      <p className="text-[0.66rem] text-outline font-headline font-semibold tracking-wider uppercase text-center">{label}</p>
+    </div>
+  )
+}
+
 function StatCard({ value, label, color, delay }) {
   return (
     <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex flex-col items-center gap-0.5 relative overflow-hidden" style={{ animationDelay: delay }}>
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
       <span className={`font-headline font-extrabold text-3xl ${color} leading-none`}>{value}</span>
       <span className="text-[0.7rem] text-outline font-headline font-semibold tracking-wider uppercase text-center">{label}</span>
+    </div>
+  )
+}
+
+function LeaderboardRow({ entry, isCurrentUser, metric, unit }) {
+  const numberFmt = new Intl.NumberFormat('fr-FR')
+  const value = metric === 'average_score'
+    ? numberFmt.format(entry.average_score)
+    : metric === 'best_streak'
+      ? entry.best_streak
+      : numberFmt.format(entry.total_score)
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isCurrentUser ? 'bg-primary-container text-on-primary-container border-primary' : 'bg-surface-container-low border-outline-variant hover:bg-surface-container-high'}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-headline font-black text-sm ${isCurrentUser ? 'bg-on-primary text-primary' : 'bg-surface-container-high text-primary'}`}>
+        #{entry.rank}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-headline font-extrabold text-sm truncate">{entry.username}</p>
+        <p className={`text-xs font-body ${isCurrentUser ? 'text-on-primary-container' : 'text-outline-variant'}`}>
+          {entry.games_won} victoires · {entry.win_rate}% · série {entry.current_streak}
+        </p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="font-headline font-extrabold text-base">{value}</p>
+        <p className={`text-[0.66rem] font-headline font-bold uppercase ${isCurrentUser ? 'text-on-primary-container' : 'text-secondary'}`}>{unit}</p>
+      </div>
+    </div>
+  )
+}
+
+function DailyLeaderboardRow({ entry, isCurrentUser }) {
+  const numberFmt = new Intl.NumberFormat('fr-FR')
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isCurrentUser ? 'bg-primary-container text-on-primary-container border-primary' : 'bg-surface-container-low border-outline-variant hover:bg-surface-container-high'}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-headline font-black text-sm ${isCurrentUser ? 'bg-on-primary text-primary' : 'bg-surface-container-high text-primary'}`}>
+        #{entry.rank}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-headline font-extrabold text-sm truncate">{entry.username}</p>
+        <p className={`text-xs font-body ${isCurrentUser ? 'text-on-primary-container' : 'text-outline-variant'}`}>
+          {entry.is_won ? `${entry.attempts_count}/6 essais` : 'Défaite'} · Défi du jour
+        </p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="font-headline font-extrabold text-base">{numberFmt.format(entry.score)}</p>
+        <p className={`text-[0.66rem] font-headline font-bold uppercase ${isCurrentUser ? 'text-on-primary-container' : 'text-secondary'}`}>points</p>
+      </div>
+    </div>
+  )
+}
+
+function BadgeCard({ achievement, delay }) {
+  const date = achievement.unlocked_at
+    ? new Date(achievement.unlocked_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    : null
+  return (
+    <div className={`rounded-2xl border p-4 flex flex-col gap-2 fade-up ${achievement.unlocked ? 'bg-surface-container-low border-primary' : 'bg-surface-container-lowest border-outline-variant opacity-60'}`} style={{ animationDelay: delay }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`material-symbols-outlined text-2xl ${achievement.unlocked ? 'text-secondary' : 'text-outline'}`}>
+          {achievement.unlocked ? achievement.icon : 'lock'}
+        </span>
+        <span className={`text-[0.66rem] font-headline font-extrabold uppercase ${achievement.unlocked ? 'text-primary' : 'text-outline'}`}>
+          {achievement.unlocked ? 'Débloqué' : 'Verrouillé'}
+        </span>
+      </div>
+      <div>
+        <p className="font-headline font-extrabold text-sm text-on-surface">{achievement.label}</p>
+        <p className="text-xs text-outline-variant font-body leading-snug">{achievement.description}</p>
+      </div>
+      {date && <p className="text-[0.68rem] text-secondary font-headline font-bold">Le {date}</p>}
     </div>
   )
 }

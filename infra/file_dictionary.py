@@ -1,3 +1,4 @@
+import hashlib
 import random
 import unicodedata
 from pathlib import Path
@@ -21,6 +22,10 @@ class FileDictionary(IDictionary):
 
     def get_random_word(self) -> str:
         return random.choice(self._secrets)
+
+    def get_word_for_key(self, key: str) -> str:
+        digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+        return self._secrets[int(digest, 16) % len(self._secrets)]
 
     def is_valid_word(self, word: str) -> bool:
         return _normalize(word) in self._valid_words

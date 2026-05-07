@@ -88,6 +88,30 @@
 - `index.html` envoie le token lors de la création de partie pour lier l'historique au compte.
 - `profile.html` affiche les vraies stats et l'historique depuis `/users/me` et `/users/me/history`.
 
+#### US-MET-10 : Défi du jour et classements avancés
+> **En tant que** joueur,
+> **je veux** jouer un défi quotidien mieux récompensé et consulter plusieurs classements,
+> **afin de** me comparer sur différents axes de performance.
+
+*Critères d'acceptation :*
+- Un bouton **Défi du jour** lance la partie quotidienne.
+- Le défi quotidien utilise le même mot pour tous les joueurs sur une date donnée.
+- Une partie quotidienne gagnée rapporte plus de points qu'une partie classique.
+- Le profil expose plusieurs classements : score actuel, record de série, score moyen et score du défi du jour.
+- Le classement du défi du jour ne prend en compte que les parties quotidiennes de la date courante.
+
+#### US-MET-11 : Accueil de jeu et navigation de fin de partie
+> **En tant que** joueur,
+> **je veux** arriver sur une page d'accueil qui présente le défi du jour, les classements et les modes de jeu,
+> **afin de** choisir rapidement entre une partie classique et le défi quotidien.
+
+*Critères d'acceptation :*
+- La page d'accueil permet de lancer une partie classique ou le défi du jour.
+- La page d'accueil affiche le classement du défi du jour.
+- Le défi du jour n'est proposé qu'une fois par jour pour un joueur connecté.
+- La fin de partie propose des actions utiles : rejouer, retour accueil, consulter le classement.
+- Le changement de langue reste accessible dans l'écran de jeu, sans être proposé dans la modale de fin de partie.
+
 ---
 
 ## ⚙️ Features DevOps
