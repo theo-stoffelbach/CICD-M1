@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from auth_utils import hash_password
+from auth_utils import create_access_token, hash_password, verify_password
 from database import get_db
 from models import User
-from schemas import UserCreate, UserOut
+from schemas import Token, UserCreate, UserLogin, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,3 +32,17 @@ def register(body: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.post("/login", response_model=Token)
+def login(body: UserLogin, db: Session = Depends(get_db)):
+    """Connecte un utilisateur et retourne un token JWT."""
+    user = db.query(User).filter(User.email == body.email).first()
+    if not user or not verify_password(body.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email ou mot de passe incorrect.",
+        )
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return Token(access_token=access_token)
