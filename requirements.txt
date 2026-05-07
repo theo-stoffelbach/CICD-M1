@@ -1,6 +1,11 @@
 ﻿fastapi
 uvicorn[standard]
-pydantic
-pytest
-pytest-cov
+pydantic[email]
+sqlalchemy
+alembic
+bcrypt
+python-jose[cryptography]
+python-multipart
+httpx
+pytest-asyncio
 

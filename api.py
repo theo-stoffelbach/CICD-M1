@@ -14,11 +14,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from database import engine
 from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLengthError
 from domain.game import Game
 from infra.file_dictionary import FileDictionary
+from models import Base
+from routers import auth
 
 app = FastAPI(title="Wordle API")
+
+Base.metadata.create_all(bind=engine)
+app.include_router(auth.router)
 
 # Autorise tous les origines en développement (frontend servi localement)
 app.add_middleware(
