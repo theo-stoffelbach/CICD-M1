@@ -1,0 +1,45 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  theme: {
+    extend: {
+      colors: {
+        'surface-variant': '#353436',
+        'surface-container-highest': '#353436',
+        surface: '#131314',
+        'on-surface': '#e5e2e3',
+        'surface-container': '#201f20',
+        'surface-container-low': '#1c1b1c',
+        'surface-container-high': '#2a2a2b',
+        'surface-container-lowest': '#0e0e0f',
+        'surface-bright': '#39393a',
+        outline: '#8b9386',
+        'outline-variant': '#41493e',
+        primary: '#94d78c',
+        'primary-container': '#6aaa64',
+        'primary-fixed': '#aff4a6',
+        'on-primary': '#003908',
+        'on-primary-container': '#003c09',
+        secondary: '#dcc668',
+        'secondary-container': '#6b5b01',
+        'on-secondary-container': '#ebd475',
+        error: '#ffb4ab',
+        'error-container': '#93000a',
+        'on-error-container': '#ffdad6',
+        'on-surface-variant': '#c0c9bb',
+      },
+      fontFamily: {
+        headline: ['Manrope', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        DEFAULT: '0.125rem',
+        lg: '0.25rem',
+        xl: '0.5rem',
+        full: '0.75rem',
+      },
+    },
+  },
+  plugins: [],
+}
