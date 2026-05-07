@@ -2,6 +2,7 @@
 uvicorn[standard]
 pydantic[email]
 sqlalchemy
+psycopg2-binary
 alembic
 bcrypt
 python-jose[cryptography]
