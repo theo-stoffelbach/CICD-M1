@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Wordle — Connexion</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#353436",
+            "surface-container-highest": "#353436",
+            "surface": "#131314",
+            "on-surface": "#e5e2e3",
+            "surface-container": "#201f20",
+            "surface-container-low": "#1c1b1c",
+            "surface-container-high": "#2a2a2b",
+            "surface-container-lowest": "#0e0e0f",
+            "surface-bright": "#39393a",
+            "outline": "#8b9386",
+            "outline-variant": "#41493e",
+            "primary": "#94d78c",
+            "primary-container": "#6aaa64",
+            "primary-fixed": "#aff4a6",
+            "on-primary": "#003908",
+            "on-primary-container": "#003c09",
+            "secondary": "#dcc668",
+            "secondary-container": "#6b5b01",
+            "on-secondary-container": "#ebd475",
+            "error": "#ffb4ab",
+            "error-container": "#93000a",
+            "on-error-container": "#ffdad6",
+            "on-surface-variant": "#c0c9bb",
+          },
+          fontFamily: {
+            "headline": ["Manrope", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem",
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes letterPop {
+      0%   { transform: scale(1) rotateX(0); }
+      40%  { transform: scale(1.15) rotateX(-15deg); }
+      100% { transform: scale(1) rotateX(0); }
+    }
+
+    .card-enter { animation: fadeUp 0.4s cubic-bezier(.22,1,.36,1) both; }
+    .form-enter { animation: slideIn 0.3s cubic-bezier(.22,1,.36,1) both; }
+    .shake      { animation: shake 0.4s ease; }
+
+    .wordle-tile {
+      animation: letterPop 0.5s cubic-bezier(.22,1,.36,1) both;
+    }
+    .wordle-tile:nth-child(1) { animation-delay: 0.05s; }
+    .wordle-tile:nth-child(2) { animation-delay: 0.10s; }
+    .wordle-tile:nth-child(3) { animation-delay: 0.15s; }
+    .wordle-tile:nth-child(4) { animation-delay: 0.20s; }
+    .wordle-tile:nth-child(5) { animation-delay: 0.25s; }
+    .wordle-tile:nth-child(6) { animation-delay: 0.30s; }
+
+    .input-field {
+      background: #1c1b1c;
+      border: 1.5px solid #41493e;
+      border-radius: 0.75rem;
+      color: #e5e2e3;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field::placeholder { color: #8b9386; }
+    .input-field:focus {
+      border-color: #6aaa64;
+      box-shadow: 0 0 0 3px rgba(106,170,100,0.15);
+    }
+    .input-field.error {
+      border-color: #93000a;
+      box-shadow: 0 0 0 3px rgba(147,0,10,0.15);
+    }
+
+    .btn-primary {
+      background: #6aaa64;
+      color: #003c09;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      transition: opacity 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: transparent;
+      color: #c0c9bb;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 600;
+      border-radius: 0.75rem;
+      padding: 0.65rem 1rem;
+      width: 100%;
+      border: 1.5px solid #41493e;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-ghost:hover {
+      background: #2a2a2b;
+      border-color: #8b9386;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.5rem;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, color 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .tab-btn.active {
+      background: #6aaa64;
+      color: #003c09;
+    }
+    .tab-btn.inactive {
+      background: transparent;
+      color: #8b9386;
+    }
+    .tab-btn.inactive:hover { color: #c0c9bb; }
+
+    .strength-bar {
+      height: 3px;
+      border-radius: 99px;
+      transition: width 0.4s ease, background 0.4s ease;
+    }
+
+    /* Floating label style */
+    .field-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b9386;
+      margin-bottom: 0.35rem;
+      display: block;
+      font-family: 'Manrope', sans-serif;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #41493e;
+      font-size: 0.75rem;
+      font-family: 'Manrope', sans-serif;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #41493e;
+    }
+
+    .toast {
+      position: fixed;
+      top: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      background: #e5e2e3;
+      color: #131314;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.75rem;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.error-toast {
+      background: #93000a;
+      color: #ffdad6;
+    }
+    .toast.hidden { opacity: 0; }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen flex flex-col items-center justify-center p-4">
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Header logo -->
+  <div class="mb-8 card-enter" style="animation-delay:0s">
+    <!-- Mini Wordle tiles decoration -->
+    <div class="flex justify-center gap-1.5 mb-3">
+      <div class="wordle-tile w-9 h-9 bg-primary-container text-on-primary-container flex items-center justify-center text-base font-black font-headline rounded-lg">W</div>
+      <div class="wordle-tile w-9 h-9 bg-secondary-container text-on-secondary-container flex items-center justify-center text-base font-black font-headline rounded-lg">O</div>
+      <div class="wordle-tile w-9 h-9 bg-surface-container-highest text-on-surface flex items-center justify-center text-base font-black font-headline rounded-lg">R</div>
+      <div class="wordle-tile w-9 h-9 bg-primary-container text-on-primary-container flex items-center justify-center text-base font-black font-headline rounded-lg">D</div>
+      <div class="wordle-tile w-9 h-9 bg-surface-container-highest text-on-surface flex items-center justify-center text-base font-black font-headline rounded-lg">L</div>
+      <div class="wordle-tile w-9 h-9 bg-primary-container text-on-primary-container flex items-center justify-center text-base font-black font-headline rounded-lg">E</div>
+    </div>
+    <p class="text-center text-on-surface-variant text-xs font-body tracking-widest uppercase">Connectez-vous pour sauvegarder votre historique</p>
+  </div>
+
+  <!-- Auth card -->
+  <div class="w-full max-w-sm bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-2xl card-enter" style="animation-delay:0.08s">
+
+    <!-- Tabs -->
+    <div class="flex gap-1 p-2 bg-surface-container-low">
+      <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">Connexion</button>
+      <button id="tab-register" class="tab-btn inactive" onclick="switchTab('register')">Créer un compte</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login" class="p-6 flex flex-col gap-5 form-enter">
+      <div>
+        <label class="field-label" for="login-email">Email</label>
+        <div style="position:relative">
+          <input class="input-field" id="login-email" type="email" placeholder="vous@exemple.com" autocomplete="email"/>
+          <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#8b9386;font-size:18px;pointer-events:none">mail</span>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
+          <label class="field-label" for="login-password" style="margin-bottom:0">Mot de passe</label>
+          <button onclick="showForgot()" style="font-size:0.72rem;color:#6aaa64;background:none;border:none;cursor:pointer;font-family:'Manrope',sans-serif;font-weight:600">Oublié ?</button>
+        </div>
+        <div style="position:relative">
+          <input class="input-field" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <button onclick="togglePassword('login-password', this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8b9386;padding:0;display:flex">
+            <span class="material-symbols-outlined" style="font-size:18px">visibility</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-login" onclick="handleLogin()">
+        <span id="btn-login-text">Se connecter</span>
+      </button>
+
+      <div class="divider">ou</div>
+
+      <button class="btn-ghost" onclick="handleGuest()">
+        <span style="display:flex;align-items:center;justify-content:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:16px">sports_esports</span>
+          Jouer sans compte
+        </span>
+      </button>
+    </div>
+
+    <!-- Register form -->
+    <div id="form-register" class="p-6 flex flex-col gap-4 form-enter hidden">
+      <div>
+        <label class="field-label" for="reg-username">Pseudo</label>
+        <div style="position:relative">
+          <input class="input-field" id="reg-username" type="text" placeholder="WordleMaster42" autocomplete="username" oninput="validateUsername()"/>
+          <span id="username-check" class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;display:none"></span>
+        </div>
+        <p id="username-hint" class="text-xs mt-1" style="color:#8b9386;font-family:'Inter',sans-serif">3 à 20 caractères, lettres et chiffres uniquement</p>
+      </div>
+      <div>
+        <label class="field-label" for="reg-email">Email</label>
+        <div style="position:relative">
+          <input class="input-field" id="reg-email" type="email" placeholder="vous@exemple.com" autocomplete="email"/>
+          <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#8b9386;font-size:18px;pointer-events:none">mail</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="reg-password">Mot de passe</label>
+        <div style="position:relative">
+          <input class="input-field" id="reg-password" type="password" placeholder="••••••••" autocomplete="new-password" oninput="updateStrength()"/>
+          <button onclick="togglePassword('reg-password', this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8b9386;padding:0;display:flex">
+            <span class="material-symbols-outlined" style="font-size:18px">visibility</span>
+          </button>
+        </div>
+        <!-- Strength meter -->
+        <div style="margin-top:8px">
+          <div style="display:flex;gap:4px;margin-bottom:4px">
+            <div id="s1" class="strength-bar" style="width:25%;background:#41493e"></div>
+            <div id="s2" class="strength-bar" style="width:25%;background:#41493e"></div>
+            <div id="s3" class="strength-bar" style="width:25%;background:#41493e"></div>
+            <div id="s4" class="strength-bar" style="width:25%;background:#41493e"></div>
+          </div>
+          <p id="strength-label" class="text-xs" style="color:#8b9386;font-family:'Inter',sans-serif"></p>
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="reg-confirm">Confirmer le mot de passe</label>
+        <div style="position:relative">
+          <input class="input-field" id="reg-confirm" type="password" placeholder="••••••••" autocomplete="new-password" oninput="checkConfirm()"/>
+          <span id="confirm-icon" class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;display:none"></span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-register" onclick="handleRegister()">
+        <span id="btn-register-text">Créer mon compte</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <p class="mt-6 text-xs text-on-surface-variant text-center font-body card-enter" style="animation-delay:0.16s">
+    Vos données ne sont jamais partagées. 🔒
+  </p>
+
+  <script>
+    const API = "http://localhost:8000"
+
+    // ─── Tabs ─────────────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      const loginForm    = document.getElementById('form-login')
+      const registerForm = document.getElementById('form-register')
+      const tabLogin     = document.getElementById('tab-login')
+      const tabRegister  = document.getElementById('tab-register')
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden')
+        registerForm.classList.add('hidden')
+        tabLogin.className    = 'tab-btn active'
+        tabRegister.className = 'tab-btn inactive'
+        loginForm.style.animation = 'none'
+        void loginForm.offsetWidth
+        loginForm.style.animation = ''
+        loginForm.classList.add('form-enter')
+      } else {
+        registerForm.classList.remove('hidden')
+        loginForm.classList.add('hidden')
+        tabRegister.className = 'tab-btn active'
+        tabLogin.className    = 'tab-btn inactive'
+        registerForm.style.animation = 'none'
+        void registerForm.offsetWidth
+        registerForm.style.animation = ''
+        registerForm.classList.add('form-enter')
+      }
+    }
+
+    // ─── Toggle password visibility ───────────────────────────────────────────
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id)
+      const icon  = btn.querySelector('.material-symbols-outlined')
+      if (input.type === 'password') {
+        input.type = 'text'
+        icon.textContent = 'visibility_off'
+      } else {
+        input.type = 'password'
+        icon.textContent = 'visibility'
+      }
+    }
+
+    // ─── Password strength ────────────────────────────────────────────────────
+    function updateStrength() {
+      const pw = document.getElementById('reg-password').value
+      let score = 0
+      if (pw.length >= 8)            score++
+      if (/[A-Z]/.test(pw))          score++
+      if (/[0-9]/.test(pw))          score++
+      if (/[^A-Za-z0-9]/.test(pw))   score++
+
+      const colors  = ['#93000a', '#ba7517', '#6aaa64', '#1D9E75']
+      const labels  = ['Très faible', 'Faible', 'Bon', 'Excellent']
+      const textClr = ['#ffb4ab', '#FAC775', '#94d78c', '#9FE1CB']
+
+      for (let i = 1; i <= 4; i++) {
+        const bar = document.getElementById(`s${i}`)
+        bar.style.background = i <= score ? colors[score - 1] : '#41493e'
+      }
+
+      const lbl = document.getElementById('strength-label')
+      if (pw.length === 0) { lbl.textContent = ''; return }
+      lbl.textContent  = labels[score - 1] || 'Très faible'
+      lbl.style.color  = textClr[score - 1] || '#ffb4ab'
+    }
+
+    // ─── Username validation ──────────────────────────────────────────────────
+    function validateUsername() {
+      const val   = document.getElementById('reg-username').value
+      const input = document.getElementById('reg-username')
+      const icon  = document.getElementById('username-check')
+      const hint  = document.getElementById('username-hint')
+      const valid = /^[a-zA-Z0-9]{3,20}$/.test(val)
+
+      if (val.length === 0) {
+        icon.style.display = 'none'
+        input.classList.remove('error')
+        hint.style.color = '#8b9386'
+        return
+      }
+      icon.style.display  = 'block'
+      if (valid) {
+        icon.textContent    = 'check_circle'
+        icon.style.color    = '#6aaa64'
+        input.classList.remove('error')
+        hint.style.color    = '#6aaa64'
+        hint.textContent    = 'Pseudo disponible'
+      } else {
+        icon.textContent    = 'cancel'
+        icon.style.color    = '#ffb4ab'
+        input.classList.add('error')
+        hint.style.color    = '#ffb4ab'
+        hint.textContent    = '3 à 20 caractères, lettres et chiffres uniquement'
+      }
+    }
+
+    // ─── Confirm password ─────────────────────────────────────────────────────
+    function checkConfirm() {
+      const pw      = document.getElementById('reg-password').value
+      const confirm = document.getElementById('reg-confirm').value
+      const input   = document.getElementById('reg-confirm')
+      const icon    = document.getElementById('confirm-icon')
+
+      if (confirm.length === 0) { icon.style.display = 'none'; input.classList.remove('error'); return }
+      icon.style.display = 'block'
+      if (pw === confirm) {
+        icon.textContent  = 'check_circle'
+        icon.style.color  = '#6aaa64'
+        input.classList.remove('error')
+      } else {
+        icon.textContent  = 'cancel'
+        icon.style.color  = '#ffb4ab'
+        input.classList.add('error')
+      }
+    }
+
+    // ─── Toast ────────────────────────────────────────────────────────────────
+    let toastTimer = null
+    function showToast(msg, isError = false) {
+      const el = document.getElementById('toast')
+      el.textContent = msg
+      el.className = 'toast' + (isError ? ' error-toast' : '')
+      if (toastTimer) clearTimeout(toastTimer)
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 2800)
+    }
+
+    // ─── Shake field ──────────────────────────────────────────────────────────
+    function shakeField(id) {
+      const el = document.getElementById(id)
+      el.classList.add('shake')
+      el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true })
+    }
+
+    // ─── Login ────────────────────────────────────────────────────────────────
+    async function handleLogin() {
+      const email    = document.getElementById('login-email').value.trim()
+      const password = document.getElementById('login-password').value
+      const btn      = document.getElementById('btn-login')
+      const btnText  = document.getElementById('btn-login-text')
+
+      if (!email) { shakeField('login-email'); showToast('Email requis', true); return }
+      if (!password) { shakeField('login-password'); showToast('Mot de passe requis', true); return }
+
+      btn.disabled     = true
+      btnText.textContent = 'Connexion…'
+
+      try {
+        // Appel futur vers l'API : POST /auth/login
+        // const res  = await fetch(`${API}/auth/login`, {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ email, password }),
+        // })
+        // const data = await res.json()
+        // if (!res.ok) throw new Error(data.detail || 'Erreur de connexion')
+        // localStorage.setItem('wordle_token', data.access_token)
+        // window.location.href = 'index.html'
+
+        // Simulation (à retirer quand l'API est branchée)
+        await new Promise(r => setTimeout(r, 900))
+        showToast('✅ Connecté ! Redirection…')
+        setTimeout(() => window.location.href = 'index.html', 1200)
+      } catch (e) {
+        showToast(e.message || 'Identifiants incorrects', true)
+        shakeField('login-email')
+        shakeField('login-password')
+      } finally {
+        btn.disabled    = false
+        btnText.textContent = 'Se connecter'
+      }
+    }
+
+    // ─── Register ─────────────────────────────────────────────────────────────
+    async function handleRegister() {
+      const username = document.getElementById('reg-username').value.trim()
+      const email    = document.getElementById('reg-email').value.trim()
+      const password = document.getElementById('reg-password').value
+      const confirm  = document.getElementById('reg-confirm').value
+      const btn      = document.getElementById('btn-register')
+      const btnText  = document.getElementById('btn-register-text')
+
+      if (!username || !/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+        shakeField('reg-username'); showToast('Pseudo invalide', true); return
+      }
+      if (!email || !email.includes('@')) {
+        shakeField('reg-email'); showToast('Email invalide', true); return
+      }
+      if (password.length < 6) {
+        shakeField('reg-password'); showToast('Mot de passe trop court (6 min.)', true); return
+      }
+      if (password !== confirm) {
+        shakeField('reg-confirm'); showToast('Les mots de passe ne correspondent pas', true); return
+      }
+
+      btn.disabled    = true
+      btnText.textContent = 'Création…'
+
+      try {
+        // Appel futur vers l'API : POST /auth/register
+        // const res  = await fetch(`${API}/auth/register`, {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ username, email, password }),
+        // })
+        // const data = await res.json()
+        // if (!res.ok) throw new Error(data.detail || 'Erreur d\'inscription')
+        // localStorage.setItem('wordle_token', data.access_token)
+        // window.location.href = 'index.html'
+
+        // Simulation (à retirer quand l'API est branchée)
+        await new Promise(r => setTimeout(r, 1100))
+        showToast('🎉 Compte créé ! Bienvenue ' + username)
+        setTimeout(() => window.location.href = 'index.html', 1400)
+      } catch (e) {
+        showToast(e.message || 'Erreur lors de l\'inscription', true)
+      } finally {
+        btn.disabled    = false
+        btnText.textContent = 'Créer mon compte'
+      }
+    }
+
+    // ─── Guest mode ───────────────────────────────────────────────────────────
+    function handleGuest() {
+      localStorage.removeItem('wordle_token')
+      localStorage.removeItem('wordle_user')
+      window.location.href = 'index.html'
+    }
+
+    // ─── Forgot password ──────────────────────────────────────────────────────
+    function showForgot() {
+      showToast('Fonctionnalité à venir 🔧')
+    }
+
+    // ─── Enter key support ────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return
+      const loginVisible = !document.getElementById('form-login').classList.contains('hidden')
+      if (loginVisible) handleLogin()
+      else handleRegister()
+    })
+
+    // ─── Auto-redirect if already logged in ──────────────────────────────────
+    if (localStorage.getItem('wordle_token')) {
+      // window.location.href = 'index.html'  // décommenter quand l'API est prête
+    }
+  </script>
+</body>
+</html>
