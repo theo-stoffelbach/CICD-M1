@@ -7,7 +7,7 @@
 | Couche | Techno |
 |--------|--------|
 | **Backend** | Python 3.14, FastAPI, SQLAlchemy 2.0 |
-| **Frontend** | HTML, CSS, JS vanilla |
+| **Frontend** | React 19, Vite, Tailwind CSS |
 | **Base de données** | PostgreSQL (prod) / SQLite (dev local) |
 | **Auth** | JWT (OAuth2 Bearer) |
 | **Conteneurisation** | Docker, Docker Compose |
@@ -19,7 +19,7 @@
 ## 📦 Prérequis
 
 - [Docker](https://www.docker.com/) + Docker Compose
-- OU Python 3.14+ pour le dev local
+- OU Python 3.14+ et Node.js 20+ pour le dev local
 
 ---
 
@@ -62,6 +62,15 @@ uvicorn api:app --reload
 ```
 
 L'API est disponible sur `http://localhost:8000`.
+
+Dans un second terminal :
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Le frontend React est disponible sur `http://localhost:5173`.
 
 Pour utiliser PostgreSQL en local :
 ```bash
@@ -143,10 +152,9 @@ CICD-M1/
 ├── api.py               # Point d'entrée FastAPI
 ├── tests/
 │   └── test_game.py
-├── frontend/            # Application vanilla JS
+├── frontend/            # Application React + Vite
+│   ├── src/
 │   ├── index.html
-│   ├── auth.html
-│   ├── profile.html
 │   └── Dockerfile
 ├── Dockerfile           # Image backend
 ├── docker-compose.yml   # Orchestration complète
