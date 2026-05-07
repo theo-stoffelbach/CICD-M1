@@ -1,124 +1,189 @@
-# Wordle — TP Tests Unitaires (M1 Ynov)
+# Wordle — Projet CI/CD (M1 Ynov)
 
-> 🔗 Dépôt Git : [github.com/ThaoK31/Test_et_tests_unitaires](https://github.com/ThaoK31/Test_et_tests_unitaires)
+> 🎮 Jeu Wordle fullstack conteneurisé avec pipeline CI/CD, authentification, scoring et monitoring.
 
-Projet Wordle complet avec architecture domaine pur, tests exhaustifs, API FastAPI et frontend vanilla.
+## 🚀 Stack technique
 
-## Prérequis
+| Couche | Techno |
+|--------|--------|
+| **Backend** | Python 3.14, FastAPI, SQLAlchemy 2.0 |
+| **Frontend** | HTML, CSS, JS vanilla |
+| **Base de données** | PostgreSQL (prod) / SQLite (dev local) |
+| **Auth** | JWT (OAuth2 Bearer) |
+| **Conteneurisation** | Docker, Docker Compose |
+| **Tests** | pytest, pytest-cov |
+| **CI/CD** | GitHub Actions (à venir) |
 
-- Python 3.10+
-- Un navigateur web
+---
 
-## Installation
+## 📦 Prérequis
+
+- [Docker](https://www.docker.com/) + Docker Compose
+- OU Python 3.14+ pour le dev local
+
+---
+
+## 🐳 Lancer avec Docker (recommandé)
 
 ```bash
-# Cloner le repo
-git clone https://github.com/ThaoK31/Test_et_tests_unitaires.git
-cd Test_et_tests_unitaires/tp_wordle
+# Build et démarrage des 3 services (db + backend + frontend)
+docker compose up --build -d
 
-# Créer et activer le venv
+# Voir les logs
+docker compose logs -f backend
+
+# Arrêter
+docker compose down
+
+# Reset total (supprime aussi la BDD)
+docker compose down -v
+```
+
+**Services démarrés :**
+- 🗄️ PostgreSQL → `localhost:5432`
+- 🚀 API FastAPI → `http://localhost:8000`
+- 🌐 Frontend → `http://localhost`
+
+---
+
+## 💻 Lancer en local (dev)
+
+```bash
+# Créer le venv
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 source .venv/bin/activate     # macOS / Linux
 
-# Installer les dépendances
+# Installer les déps
 pip install -r requirements.txt
-```
 
-## Lancer les tests
-
-```bash
-pytest tests/ -v
-```
-
-Couverture :
-```bash
-pytest tests/ --cov=domain -v
-```
-
-## Lancer l'application
-
-### 1. Démarrer l'API
-
-```bash
+# Lancer l'API (SQLite par défaut)
 uvicorn api:app --reload
 ```
 
 L'API est disponible sur `http://localhost:8000`.
 
-Endpoints :
-- `POST /game` — Créer une partie
-- `POST /game/{id}/guess` — Soumettre un mot
-- `GET /game/{id}` — État de la partie (avec historique des tentatives)
-
-### 2. Ouvrir le frontend
-
-Ouvrir directement `frontend/index.html` dans votre navigateur :
-
+Pour utiliser PostgreSQL en local :
 ```bash
-start frontend/index.html         # Windows
-open frontend/index.html          # macOS
-xdg-open frontend/index.html      # Linux
+$env:DATABASE_URL="postgresql://user:password@localhost/wordle"   # Windows
+uvicorn api:app --reload
 ```
 
-Le frontend se connecte automatiquement à `http://localhost:8000`.
+---
 
-## Fonctionnalités
+## 🧪 Tests
+
+```bash
+pytest tests/ -v
+pytest tests/ --cov=domain -v
+```
+
+---
+
+## 🌐 Endpoints API
+
+### Auth
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `POST` | `/auth/register` | Créer un compte |
+| `POST` | `/auth/login` | Se connecter (retourne JWT) |
+
+### Utilisateur (protégé par Bearer)
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `GET` | `/users/me` | Profil + stats |
+| `GET` | `/users/me/history` | Historique des parties |
+
+### Jeu
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `POST` | `/game` | Créer une partie |
+| `POST` | `/game/{id}/guess` | Soumettre un mot |
+| `GET` | `/game/{id}` | État de la partie |
+
+**Doc interactive** : `http://localhost:8000/docs`
+
+---
+
+## ✨ Fonctionnalités
 
 - 🎮 Partie classique Wordle (6 tentatives, mots de 5 lettres)
-- 🟩🟨⬛ Feedback CORRECT / MISPLACED / ABSENT
-- 🔤 Lettres multiples gérées scrupuleusement
+- 🔐 Système de comptes (inscription / connexion JWT)
+- 📊 Profil utilisateur avec stats réelles (parties, victoires, score total)
+- 📜 Historique des parties sauvegardées
+- 🏆 Système de scoring (plus rapide = plus de points)
 - 🌍 Deux langues : Français et Anglais
 - ⌨️ Clavier virtuel + support clavier physique
 - ✨ Animations flip, shake, pop
-- 🏆 Modales victoire / défaite avec révélation du mot
+- 🏆 Modales victoire / défaite
 
-## Architecture
+---
 
-Le projet suit une architecture en couches avec séparation stricte métier / infra :
+## 🏗️ Architecture
 
 ```
-tp_wordle/
-├── domain/              # Cœur métier, 0 dépendance technique
-│   ├── word.py          # Value object Word (validation 5 lettres)
-│   ├── feedback.py      # Enum LetterFeedback
-│   ├── attempt.py       # Attempt = word + feedback
-│   ├── game_state.py    # État complet d'une partie
-│   ├── dictionary.py    # IDictionary (ABC)
-│   ├── game.py          # Logique de partie
-│   └── errors.py        # Erreurs métier typées
+CICD-M1/
+├── domain/              # Cœur métier pur (0 dépendance technique)
+│   ├── word.py
+│   ├── feedback.py
+│   ├── attempt.py
+│   ├── game_state.py
+│   ├── dictionary.py
+│   ├── game.py
+│   └── errors.py
 ├── infra/
-│   └── file_dictionary.py   # Implémentation IDictionary via fichiers .txt
+│   └── file_dictionary.py
+├── routers/             # Endpoints FastAPI
+│   ├── auth.py          # Inscription / Login
+│   └── users.py         # Profil / Historique
+├── models.py            # Modèles SQLAlchemy
+├── schemas.py           # Schémas Pydantic
+├── database.py          # Connexion DB
+├── auth_utils.py        # Hash + JWT
+├── api.py               # Point d'entrée FastAPI
 ├── tests/
-│   ├── fakes/fake_dictionary.py   # Doublure de test
-│   └── test_game.py             # Tests Given/When/Then
-├── frontend/
-│   └── index.html       # Jeu jouable en vanilla JS
-├── api.py               # FastAPI (thin layer)
+│   └── test_game.py
+├── frontend/            # Application vanilla JS
+│   ├── index.html
+│   ├── auth.html
+│   ├── profile.html
+│   └── Dockerfile
+├── Dockerfile           # Image backend
+├── docker-compose.yml   # Orchestration complète
+├── docs/                # Documentation projet
+│   ├── CONSIGNE.md
+│   ├── US.md
+│   └── GIT_WORKFLOW.md
 ├── valid_fr.txt / valid_en.txt
 ├── secrets_fr.txt / secrets_en.txt
 └── README.md
 ```
 
-## Règles du jeu
+---
 
-- Le système choisit un mot secret de 5 lettres.
-- Le joueur a 6 tentatives pour le deviner.
-- Après chaque tentative, chaque lettre reçoit un feedback :
-  - **CORRECT** 🟩 — bonne lettre, bonne place
-  - **MISPLACED** 🟨 — bonne lettre, mauvaise place
-  - **ABSENT** ⬛ — lettre absente du mot secret
-- Si une lettre apparaît plusieurs fois dans la proposition mais moins de fois dans le secret, les occurrences en trop sont marquées **ABSENT**.
+## 🎯 Règles du scoring
 
-## Dictionnaires
+| Résultat | Score |
+|----------|-------|
+| Victoire en 1 coup | 600 pts |
+| Victoire en 6 coups | 100 pts |
+| Défaite | 0 pt |
 
-| Langue | Source | Mots valides | Mots secrets |
-|--------|--------|-------------|--------------|
-| 🇫🇷 FR | Liste originale française | 5 951 | 353 |
-| 🇬🇧 EN | [Wordle officiel (NYT)](https://www.nytimes.com/games/wordle/index.html) | 12 972 | 2 315 |
+Formule : `(7 - nombre_de_tentatives) × 100`
 
-Les accents sont automatiquement normalisés (`café` → `CAFE`).
+---
 
-## Auteur
+## 🗺️ Dictionnaires
 
-Projet réalisé dans le cadre du cours **Tests et Tests Unitaires** — M1 Ynov.
+| Langue | Mots valides | Mots secrets |
+|--------|-------------|--------------|
+| 🇫🇷 FR | ~6 000 | ~350 |
+| 🇬🇧 EN | ~13 000 | ~2 300 |
+
+Les accents sont normalisés (`café` → `CAFE`).
+
+---
+
+## 👥 Équipe
+
+Projet réalisé dans le cadre du module **CI/CD** — M1 Ynov.
