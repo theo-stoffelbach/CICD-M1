@@ -36,7 +36,7 @@ services:
   # ─── Frontend Nginx ────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend_new
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: wordle-front
     ports:

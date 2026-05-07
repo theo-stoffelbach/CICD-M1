@@ -65,7 +65,7 @@ L'API est disponible sur `http://localhost:8000`.
 
 Dans un second terminal :
 ```bash
-cd frontend_new
+cd frontend
 npm install
 npm run dev
 ```
@@ -152,8 +152,7 @@ CICD-M1/
 ├── api.py               # Point d'entrée FastAPI
 ├── tests/
 │   └── test_game.py
-├── frontend/            # Ancienne application vanilla JS
-├── frontend_new/        # Application React + Vite
+├── frontend/            # Application React + Vite
 │   ├── src/
 │   ├── index.html
 │   └── Dockerfile

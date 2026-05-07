@@ -13,7 +13,6 @@ htmlcov/
 
 # Frontend (build séparé)
 frontend/
-frontend_new/
 docs/
 
 # Git
