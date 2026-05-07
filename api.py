@@ -8,34 +8,30 @@ Endpoints :
 """
 
 import uuid
+import logging
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from auth_utils import get_current_user_optional
 from database import engine, get_db
 from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLengthError
-from domain.game import Game
+from domain.game import Game, MAX_ATTEMPTS
 from infra.file_dictionary import FileDictionary
 from models import Base, GameHistory
 from routers import auth, users
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Wordle API")
 
 Base.metadata.create_all(bind=engine)
 app.include_router(auth.router)
 app.include_router(users.router)
-
-# Autorise tous les origines en développement (frontend servi localement)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # --- Dictionnaires disponibles par langue ---
 BASE_DIR = Path(__file__).parent
@@ -115,17 +111,21 @@ def guess(
         raise HTTPException(status_code=422, detail=str(error))
 
     if game.is_over and user_id is not None:
-        attempts_count = len(game.attempts)
-        score = (MAX_ATTEMPTS - attempts_count + 1) * 100 if game.is_won else 0
-        db.add(GameHistory(
-            user_id=user_id,
-            secret_word=game.secret_word.value,
-            attempts_count=attempts_count,
-            is_won=game.is_won,
-            score=score,
-            language=language,
-        ))
-        db.commit()
+        try:
+            attempts_count = len(game.attempts)
+            score = (MAX_ATTEMPTS - attempts_count + 1) * 100 if game.is_won else 0
+            db.add(GameHistory(
+                user_id=user_id,
+                secret_word=game.secret_word.value,
+                attempts_count=attempts_count,
+                is_won=game.is_won,
+                score=score,
+                language=language,
+            ))
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Impossible d'enregistrer l'historique de la partie %s", game_id)
 
     return _build_guess_response(game, feedback)
 
@@ -173,3 +173,12 @@ def _build_state_response(game: Game) -> GameStateResponse:
         attempts=_attempts_to_items(game),
         secret_word=game.secret_word.value if game.is_over else None,
     )
+
+
+# Le middleware CORS enveloppe toute l'app ASGI, y compris les réponses 500.
+app = CORSMiddleware(
+    app,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

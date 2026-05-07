@@ -1,16 +1,13 @@
-# ─── Étape 1 : Image de base ─────────────────────────────────────────────────
-# nginx:alpine = serveur web ultra-léger pour fichiers statiques
+# ─── Étape 1 : Build React ──────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# ─── Étape 2 : Serve avec Nginx ─────────────────────────────────────────────
 FROM nginx:alpine
-
-# ─── Étape 2 : Copier les fichiers du frontend ───────────────────────────────
-# On remplace la page par défaut de Nginx par notre Wordle
-COPY index.html /usr/share/nginx/html/
-COPY auth.html /usr/share/nginx/html/
-COPY profile.html /usr/share/nginx/html/
-COPY src/ /usr/share/nginx/html/src/
-
-# ─── Étape 3 : Configuration personnalisée ────────────────────────────────────
+COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# ─── Étape 4 : Port exposé ───────────────────────────────────────────────────
 EXPOSE 80
