@@ -498,21 +498,16 @@
       btnText.textContent = 'Connexion…'
 
       try {
-        // Appel futur vers l'API : POST /auth/login
-        // const res  = await fetch(`${API}/auth/login`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ email, password }),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) throw new Error(data.detail || 'Erreur de connexion')
-        // localStorage.setItem('wordle_token', data.access_token)
-        // window.location.href = 'index.html'
-
-        // Simulation (à retirer quand l'API est branchée)
-        await new Promise(r => setTimeout(r, 900))
+        const res  = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.detail || 'Erreur de connexion')
+        localStorage.setItem('wordle_token', data.access_token)
         showToast('✅ Connecté ! Redirection…')
-        setTimeout(() => window.location.href = 'index.html', 1200)
+        setTimeout(() => window.location.href = 'index.html', 800)
       } catch (e) {
         showToast(e.message || 'Identifiants incorrects', true)
         shakeField('login-email')
@@ -549,21 +544,26 @@
       btnText.textContent = 'Création…'
 
       try {
-        // Appel futur vers l'API : POST /auth/register
-        // const res  = await fetch(`${API}/auth/register`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ username, email, password }),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) throw new Error(data.detail || 'Erreur d\'inscription')
-        // localStorage.setItem('wordle_token', data.access_token)
-        // window.location.href = 'index.html'
+        const res  = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.detail || 'Erreur d\'inscription')
 
-        // Simulation (à retirer quand l'API est branchée)
-        await new Promise(r => setTimeout(r, 1100))
+        // Auto-login après inscription
+        const loginRes = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+        const loginData = await loginRes.json()
+        if (!loginRes.ok) throw new Error(loginData.detail || 'Erreur de connexion')
+        localStorage.setItem('wordle_token', loginData.access_token)
+
         showToast('🎉 Compte créé ! Bienvenue ' + username)
-        setTimeout(() => window.location.href = 'index.html', 1400)
+        setTimeout(() => window.location.href = 'index.html', 1200)
       } catch (e) {
         showToast(e.message || 'Erreur lors de l\'inscription', true)
       } finally {
@@ -594,7 +594,7 @@
 
     // ─── Auto-redirect if already logged in ──────────────────────────────────
     if (localStorage.getItem('wordle_token')) {
-      // window.location.href = 'index.html'  // décommenter quand l'API est prête
+      window.location.href = 'index.html'
     }
   </script>
 </body>

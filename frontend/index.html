@@ -188,6 +188,16 @@
   const WORD_LENGTH = 5
   const MAX_ATTEMPTS = 6
 
+  async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('wordle_token')
+    const opts = { ...options }
+    opts.headers = { ...opts.headers }
+    if (token) {
+      opts.headers['Authorization'] = `Bearer ${token}`
+    }
+    return fetch(url, opts)
+  }
+
   const KEYBOARDS = {
     en: [
       ["Q","W","E","R","T","Y","U","I","O","P"],
@@ -235,7 +245,7 @@
     updateLangButtons()
 
     try {
-      const res = await fetch(`${API}/game`, {
+      const res = await apiFetch(`${API}/game`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language }),
@@ -316,7 +326,7 @@
     const guess = currentInput
 
     try {
-      const res = await fetch(`${API}/game/${gameId}/guess`, {
+      const res = await apiFetch(`${API}/game/${gameId}/guess`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: guess }),
@@ -374,7 +384,7 @@
     }
 
     try {
-      const res = await fetch(`${API}/game/${savedId}`)
+      const res = await apiFetch(`${API}/game/${savedId}`)
       if (!res.ok) {
         localStorage.removeItem("wordle_game_id")
         localStorage.removeItem("wordle_language")

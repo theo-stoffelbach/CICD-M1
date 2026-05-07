@@ -77,6 +77,17 @@
 > **je veux** débloquer des succès (ex: "1ère victoire", "Série de 7 jours", "Victoire en 1 coup"),  
 > **afin de** valoriser ma progression.
 
+#### US-MET-09 : Intégration frontend-backend
+> **En tant qu'** utilisateur,
+> **je veux** que le frontend communique avec le backend pour l'authentification, le profil et le jeu,
+> **afin de** disposer d'une application fonctionnelle de bout en bout.
+
+*Critères d'acceptation :*
+- `auth.html` appelle réellement `/auth/login` et `/auth/register`.
+- Le token JWT est stocké en `localStorage` et envoyé dans le header `Authorization`.
+- `index.html` envoie le token lors de la création de partie pour lier l'historique au compte.
+- `profile.html` affiche les vraies stats et l'historique depuis `/users/me` et `/users/me/history`.
+
 ---
 
 ## ⚙️ Features DevOps

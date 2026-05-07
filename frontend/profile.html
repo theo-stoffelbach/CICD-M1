@@ -449,7 +449,7 @@
             <input class="input-field" type="password" placeholder="••••••••"/>
           </div>
           <div style="display:flex;justify-content:flex-end">
-            <button class="btn-primary" onclick="showToast('Mot de passe mis à jour ✅')">
+            <button class="btn-primary" onclick="showToast('Non disponible pour l\'instant 🔧')">
               <span style="display:flex;align-items:center;gap:6px">
                 <span class="material-symbols-outlined" style="font-size:16px">lock_reset</span>
                 Mettre à jour
@@ -525,54 +525,107 @@
   <script>
     const API = "http://localhost:8000"
 
-    // ─── Mock data (remplacer par des appels API réels) ───────────────────────
-    const USER = {
-      username: 'SwanW',
-      email: 'swan@ynov.com',
-      joined: 'mai 2026',
-      streak: 7,
-      bestStreak: 12,
+    let STATS = {
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
     }
 
-    const STATS = {
-      played: 42,
-      won: 33,
-      avgGuesses: 3.4,
-      distribution: { 1: 1, 2: 4, 3: 11, 4: 9, 5: 5, 6: 3 },
-      langFr: 28,
-      langEn: 14,
+    // ─── API helpers ──────────────────────────────────────────────────────────
+    async function apiFetch(url, options = {}) {
+      const token = localStorage.getItem('wordle_token')
+      const opts = { ...options }
+      opts.headers = { ...opts.headers }
+      if (token) {
+        opts.headers['Authorization'] = `Bearer ${token}`
+      }
+      return fetch(url, opts)
     }
 
-    const HISTORY = [
-      { word: 'CRANE', lang: 'fr', won: true, attempts: 3, date: 'Aujourd\'hui' },
-      { word: 'PLUME', lang: 'fr', won: true, attempts: 2, date: 'Aujourd\'hui' },
-      { word: 'BRAIN', lang: 'en', won: false, attempts: 6, date: 'Hier' },
-      { word: 'ROUTE', lang: 'fr', won: true, attempts: 4, date: 'Hier' },
-      { word: 'STORM', lang: 'en', won: true, attempts: 3, date: '5 mai' },
-      { word: 'FLEUR', lang: 'fr', won: true, attempts: 1, date: '4 mai' },
-      { word: 'TIGER', lang: 'en', won: false, attempts: 6, date: '3 mai' },
-      { word: 'POIRE', lang: 'fr', won: true, attempts: 5, date: '3 mai' },
-    ]
+    async function loadProfile() {
+      const token = localStorage.getItem('wordle_token')
+      if (!token) {
+        window.location.href = 'auth.html'
+        return
+      }
+
+      try {
+        const res = await apiFetch(`${API}/users/me`)
+        if (!res.ok) throw new Error()
+        const user = await res.json()
+
+        document.getElementById('profile-username').textContent = user.username
+        document.getElementById('profile-email').textContent = user.email
+        const date = new Date(user.created_at)
+        const month = date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
+        document.getElementById('profile-joined').textContent = `Membre depuis ${month}`
+        document.getElementById('avatar-initials').textContent = user.username.slice(0, 2).toUpperCase()
+
+        // Streak non disponible côté API pour l'instant
+        document.getElementById('streak-count').textContent = '0'
+        document.getElementById('best-streak').textContent = '0'
+
+        document.getElementById('stat-played').innerHTML = user.games_played
+        document.getElementById('stat-winrate').innerHTML = Math.round(user.win_rate) + '<span style="font-size:1rem">%</span>'
+        document.getElementById('stat-total-won').textContent = user.games_won
+      } catch (e) {
+        showToast('Session expirée', true)
+        localStorage.removeItem('wordle_token')
+        setTimeout(() => window.location.href = 'auth.html', 1500)
+      }
+    }
+
+    async function loadHistory() {
+      const token = localStorage.getItem('wordle_token')
+      if (!token) return
+
+      try {
+        const res = await apiFetch(`${API}/users/me/history`)
+        if (!res.ok) throw new Error()
+        const history = await res.json()
+
+        const formatted = history.map(h => ({
+          word: h.secret_word.toUpperCase(),
+          lang: h.language,
+          won: h.is_won,
+          attempts: h.attempts_count,
+          date: new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+        }))
+
+        buildHistory(formatted)
+
+        // Distribution & avg guesses
+        const dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
+        let totalGuesses = 0
+        let wonCount = 0
+        history.forEach(h => {
+          if (h.is_won && h.attempts_count >= 1 && h.attempts_count <= 6) {
+            dist[h.attempts_count]++
+            totalGuesses += h.attempts_count
+            wonCount++
+          }
+        })
+        const avg = wonCount > 0 ? (totalGuesses / wonCount).toFixed(1) : '-'
+        document.getElementById('stat-avg').textContent = avg
+
+        STATS.distribution = dist
+        buildDistribution()
+
+        // Lang stats
+        const langFr = history.filter(h => h.language === 'fr').length
+        const langEn = history.filter(h => h.language === 'en').length
+        const total = langFr + langEn
+        document.getElementById('lang-fr-count').textContent = langFr
+        document.getElementById('lang-en-count').textContent = langEn
+        document.getElementById('lang-fr-bar').style.width = total > 0 ? (langFr / total * 100) + '%' : '0%'
+        document.getElementById('lang-en-bar').style.width = total > 0 ? (langEn / total * 100) + '%' : '0%'
+
+      } catch (e) {
+        console.error(e)
+      }
+    }
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     function init() {
-      // Populate dynamic data
-      document.getElementById('profile-username').textContent = USER.username
-      document.getElementById('profile-email').textContent = USER.email
-      document.getElementById('profile-joined').textContent = `Membre depuis ${USER.joined}`
-      document.getElementById('streak-count').textContent = USER.streak
-      document.getElementById('best-streak').textContent = USER.bestStreak
-      document.getElementById('avatar-initials').textContent = USER.username.slice(0,2).toUpperCase()
-
-      document.getElementById('stat-played').innerHTML = STATS.played
-      document.getElementById('stat-winrate').innerHTML = Math.round(STATS.won / STATS.played * 100) + '<span style="font-size:1rem">%</span>'
-      document.getElementById('stat-avg').textContent = STATS.avgGuesses
-      document.getElementById('stat-total-won').textContent = STATS.won
-      document.getElementById('lang-fr-count').textContent = STATS.langFr
-      document.getElementById('lang-en-count').textContent = STATS.langEn
-
-      buildDistribution()
-      buildHistory(HISTORY)
+      loadProfile().then(() => loadHistory())
     }
 
     // ─── Distribution bars ────────────────────────────────────────────────────
@@ -687,15 +740,12 @@
     }
 
     // ─── Save profile ─────────────────────────────────────────────────────────
-    function saveProfile() {
+    async function saveProfile() {
       const username = document.getElementById('edit-username').value.trim()
       const email    = document.getElementById('edit-email').value.trim()
       if (!username || !email) { showToast('Champs invalides'); return }
-      // await fetch(`${API}/auth/profile`, { method: 'PATCH', ... })
-      document.getElementById('profile-username').textContent = username
-      document.getElementById('profile-email').textContent = email
-      document.getElementById('avatar-initials').textContent = username.slice(0,2).toUpperCase()
-      showToast('Profil mis à jour ✅')
+      // TODO: PATCH /users/me quand l'endpoint sera dispo
+      showToast('Non disponible pour l\'instant 🔧')
     }
 
     // ─── Danger actions ───────────────────────────────────────────────────────
