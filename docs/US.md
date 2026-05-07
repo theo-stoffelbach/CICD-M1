@@ -189,6 +189,15 @@
 > **je veux** disposer d'endpoints `/health` et `/ready` sur le backend,  
 > **afin de** savoir quand une instance est opérationnelle et recevoir du trafic.
 
+#### US-DEV-18 : Restructuration en architecture multi-services
+> **En tant qu'** équipe de développement,  
+> **je veux** déplacer le backend dans un dossier `backend/` dédié avec son propre Dockerfile et son `requirements.txt`,  
+> **afin de** clarifier l'architecture et faciliter les builds CI/CD indépendants.
+
+*Contexte :* actuellement le backend est à la racine (`api.py`, `domain/`, `infra/`, etc.) tandis que le frontend est isolé dans `frontend/`. Cette asymétrie complique les builds Docker et la maintenance du projet.
+
+*Livrable :* structure propre `backend/`, `frontend/`, `docker-compose.yml` à la racine.
+
 ---
 
 ## Dépendances logiques
@@ -210,4 +219,5 @@
                                     [US-DEV-11] SSH + [US-DEV-12] Secrets + [US-DEV-13] Environments
                                                            ↓
                                     [US-DEV-14] Métriques + [US-DEV-15] Logs + [US-DEV-16] Alertes
+                                    [US-DEV-18] Restructuration
 ```
