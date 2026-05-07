@@ -9,20 +9,8 @@ COPY auth.html /usr/share/nginx/html/
 COPY profile.html /usr/share/nginx/html/
 COPY src/ /usr/share/nginx/html/src/
 
-# ─── Étape 3 : Configuration personnalisée (optionnel mais propre) ───────────
-# On supprime le cache pour éviter que le navigateur garde vieilles versions
-RUN echo 'server { \
-    listen 80; \
-    server_name localhost; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-    location ~* \\.(js|css|html)$ { \
-        add_header Cache-Control "no-cache"; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# ─── Étape 3 : Configuration personnalisée ────────────────────────────────────
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # ─── Étape 4 : Port exposé ───────────────────────────────────────────────────
 EXPOSE 80
