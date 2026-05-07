@@ -10,15 +10,17 @@ Endpoints :
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from database import engine
+from auth_utils import get_current_user_optional
+from database import engine, get_db
 from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLengthError
 from domain.game import Game
 from infra.file_dictionary import FileDictionary
-from models import Base
+from models import Base, GameHistory
 from routers import auth, users
 
 app = FastAPI(title="Wordle API")
@@ -43,8 +45,8 @@ DICTIONARIES = {
 }
 DEFAULT_LANGUAGE = "fr"
 
-# Stockage en mémoire des parties en cours { game_id: Game }
-games: dict[str, Game] = {}
+# Stockage en mémoire des parties en cours { game_id: (Game, user_id | None, language) }
+games: dict[str, tuple[Game, int | None, str]] = {}
 
 
 # --- Schémas de requête / réponse ---
@@ -82,7 +84,10 @@ class GameStateResponse(BaseModel):
 # --- Endpoints ---
 
 @app.post("/game", response_model=NewGameResponse)
-def create_game(body: NewGameRequest):
+def create_game(
+    body: NewGameRequest,
+    current_user = Depends(get_current_user_optional),
+):
     """Démarre une nouvelle partie dans la langue choisie."""
     if body.language not in DICTIONARIES:
         raise HTTPException(
@@ -91,19 +96,36 @@ def create_game(body: NewGameRequest):
         )
 
     game_id = str(uuid.uuid4())
-    games[game_id] = Game(DICTIONARIES[body.language])
+    games[game_id] = (Game(DICTIONARIES[body.language]), current_user.id if current_user else None, body.language)
     return NewGameResponse(game_id=game_id, language=body.language)
 
 
 @app.post("/game/{game_id}/guess", response_model=GuessResponse)
-def guess(game_id: str, body: GuessRequest):
+def guess(
+    game_id: str,
+    body: GuessRequest,
+    db: Session = Depends(get_db),
+):
     """Soumet un mot pour la partie en cours."""
-    game = _get_game_or_404(game_id)
+    game, user_id, language = _get_game_or_404(game_id)
 
     try:
         feedback = game.guess(body.word)
     except (InvalidWordError, InvalidWordLengthError, GameAlreadyOverError) as error:
         raise HTTPException(status_code=422, detail=str(error))
+
+    if game.is_over and user_id is not None:
+        attempts_count = len(game.attempts)
+        score = (MAX_ATTEMPTS - attempts_count + 1) * 100 if game.is_won else 0
+        db.add(GameHistory(
+            user_id=user_id,
+            secret_word=game.secret_word.value,
+            attempts_count=attempts_count,
+            is_won=game.is_won,
+            score=score,
+            language=language,
+        ))
+        db.commit()
 
     return _build_guess_response(game, feedback)
 
@@ -111,18 +133,18 @@ def guess(game_id: str, body: GuessRequest):
 @app.get("/game/{game_id}", response_model=GameStateResponse)
 def get_game_state(game_id: str):
     """Retourne l'état courant de la partie (sans révéler le mot secret)."""
-    game = _get_game_or_404(game_id)
+    game, _, _ = _get_game_or_404(game_id)
     return _build_state_response(game)
 
 
 # --- Utilitaires ---
 
-def _get_game_or_404(game_id: str) -> Game:
+def _get_game_or_404(game_id: str) -> tuple[Game, int | None, str]:
     """Récupère une partie par son ID ou lève une 404."""
-    game = games.get(game_id)
-    if game is None:
+    entry = games.get(game_id)
+    if entry is None:
         raise HTTPException(status_code=404, detail=f"Partie '{game_id}' introuvable.")
-    return game
+    return entry
 
 
 def _attempts_to_items(game: Game) -> list[AttemptItem]:

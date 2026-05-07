@@ -14,7 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -48,6 +48,8 @@ def get_current_user(
         detail="Token invalide ou expiré.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if token is None:
+        raise credentials_exception
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
@@ -60,3 +62,18 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def get_current_user_optional(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if token is None:
+        return None
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+    user_id: str | None = payload.get("sub")
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == int(user_id)).first()
