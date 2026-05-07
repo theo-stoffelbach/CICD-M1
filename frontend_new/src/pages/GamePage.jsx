@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createGame, submitGuess, getGameState, isLoggedIn } from '../api/client'
+import { createGame, submitGuess, getGameState } from '../api/client'
 
 const WORD_LENGTH = 5
 const MAX_ATTEMPTS = 6
@@ -21,6 +21,16 @@ const LABELS = {
   en: { win: 'You won!', lose: 'Better luck next time!' },
 }
 
+function createEmptyBoard() {
+  return Array.from({ length: MAX_ATTEMPTS }, () => (
+    Array.from({ length: WORD_LENGTH }, () => ({ letter: '', status: 'empty' }))
+  ))
+}
+
+function priority(status) {
+  return { CORRECT: 3, MISPLACED: 2, ABSENT: 1 }[status] || 0
+}
+
 function Tile({ letter, status, delay, pop }) {
   const base = 'aspect-square flex items-center justify-center text-2xl font-black font-headline rounded-xl transition-all duration-150'
   const styles = {
@@ -30,8 +40,9 @@ function Tile({ letter, status, delay, pop }) {
     MISPLACED: 'bg-secondary-container text-on-secondary-container',
     ABSENT: 'bg-surface-container-highest text-on-surface',
   }
+  const hasDelay = delay !== undefined
   return (
-    <div className={`${base} ${styles[status] || styles.empty} ${pop ? 'animate-pop' : ''} ${delay ? 'tile-flip' : ''}`} style={{ animationDelay: delay ? `${delay}ms` : undefined }}>
+    <div className={`${base} ${styles[status] || styles.empty} ${pop ? 'animate-pop' : ''} ${hasDelay ? 'tile-flip' : ''}`} style={{ animationDelay: hasDelay ? `${delay}ms` : undefined }}>
       {letter}
     </div>
   )
@@ -39,34 +50,36 @@ function Tile({ letter, status, delay, pop }) {
 
 export default function GamePage() {
   const navigate = useNavigate()
-  const [gameId, setGameId] = useState(null)
-  const [language, setLanguage] = useState('fr')
-  const [board, setBoard] = useState(Array.from({ length: MAX_ATTEMPTS }, () => Array.from({ length: WORD_LENGTH }, () => ({ letter: '', status: 'empty' }))))
+  const [gameId, setGameId] = useState(() => localStorage.getItem('wordle_game_id'))
+  const [language, setLanguage] = useState(() => localStorage.getItem('wordle_language') || 'fr')
+  const [board, setBoard] = useState(createEmptyBoard)
   const [currentRow, setCurrentRow] = useState(0)
   const [currentInput, setCurrentInput] = useState('')
   const [keyStates, setKeyStates] = useState({})
   const [isOver, setIsOver] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showLangOverlay, setShowLangOverlay] = useState(false)
+  const [showLangOverlay, setShowLangOverlay] = useState(() => !localStorage.getItem('wordle_game_id'))
   const [toast, setToast] = useState(null)
   const [modal, setModal] = useState(null) // { type: 'win'|'lose', word: string }
   const [shakeRow, setShakeRow] = useState(null)
+  const [revealingRow, setRevealingRow] = useState(null)
 
-  function showToastMsg(msg) {
+  const showToastMsg = useCallback((msg) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2000)
-  }
+  }, [])
 
   const initBoard = useCallback(() => {
-    setBoard(Array.from({ length: MAX_ATTEMPTS }, () => Array.from({ length: WORD_LENGTH }, () => ({ letter: '', status: 'empty' }))))
+    setBoard(createEmptyBoard())
     setCurrentRow(0)
     setCurrentInput('')
     setKeyStates({})
     setIsOver(false)
     setModal(null)
+    setRevealingRow(null)
   }, [])
 
-  async function startGame(lang) {
+  const startGame = useCallback(async (lang) => {
     setLanguage(lang)
     setShowLangOverlay(false)
     initBoard()
@@ -75,10 +88,10 @@ export default function GamePage() {
       setGameId(data.game_id)
       localStorage.setItem('wordle_game_id', data.game_id)
       localStorage.setItem('wordle_language', lang)
-    } catch (e) {
+    } catch {
       showToastMsg('Impossible de joindre l\'API')
     }
-  }
+  }, [initBoard, showToastMsg])
 
   function giveUp() {
     localStorage.removeItem('wordle_game_id')
@@ -87,62 +100,111 @@ export default function GamePage() {
     setShowLangOverlay(true)
   }
 
-  async function restoreGame() {
-    const savedId = localStorage.getItem('wordle_game_id')
-    const savedLang = localStorage.getItem('wordle_language')
-    if (!savedId) { setShowLangOverlay(true); return }
+  useEffect(() => {
+    let ignore = false
+
+    async function restoreSavedGame() {
+      const savedId = localStorage.getItem('wordle_game_id')
+      const savedLang = localStorage.getItem('wordle_language') || 'fr'
+      if (!savedId) return
+
+      try {
+        const data = await getGameState(savedId)
+        if (ignore) return
+
+        const newBoard = createEmptyBoard()
+        const newKeyStates = {}
+        data.attempts.forEach((attempt, row) => {
+          attempt.word.split('').forEach((letter, col) => {
+            const status = attempt.feedback[col]
+            newBoard[row][col] = { letter, status }
+            if (!newKeyStates[letter] || priority(status) > priority(newKeyStates[letter])) {
+              newKeyStates[letter] = status
+            }
+          })
+        })
+
+        setGameId(savedId)
+        setLanguage(savedLang)
+        setBoard(newBoard)
+        setCurrentRow(data.attempts.length)
+        setCurrentInput('')
+        setIsOver(data.is_over)
+        setKeyStates(newKeyStates)
+        setModal(data.is_over ? { type: data.is_won ? 'win' : 'lose', word: data.secret_word } : null)
+        setShowLangOverlay(false)
+      } catch {
+        if (ignore) return
+        localStorage.removeItem('wordle_game_id')
+        localStorage.removeItem('wordle_language')
+        setGameId(null)
+        setShowLangOverlay(true)
+      }
+    }
+
+    restoreSavedGame()
+    return () => { ignore = true }
+  }, [])
+
+  const handleLetter = useCallback((letter) => {
+    setCurrentInput(prev => {
+      if (isSubmitting || isOver || prev.length >= WORD_LENGTH) return prev
+      return prev + letter
+    })
+  }, [isOver, isSubmitting])
+
+  const handleBackspace = useCallback(() => {
+    if (isSubmitting || isOver) return
+    setCurrentInput(prev => prev.slice(0, -1))
+  }, [isOver, isSubmitting])
+
+  const doSubmit = useCallback(async () => {
+    if (isSubmitting || isOver) return
+    setIsSubmitting(true)
+    const guess = currentInput
+    const rowIndex = currentRow
     try {
-      const data = await getGameState(savedId)
-      setGameId(savedId)
-      setLanguage(savedLang || 'fr')
-      initBoard()
-      const newBoard = Array.from({ length: MAX_ATTEMPTS }, () => Array.from({ length: WORD_LENGTH }, () => ({ letter: '', status: 'empty' })))
-      const newKeyStates = {}
-      data.attempts.forEach((attempt, row) => {
-        attempt.word.split('').forEach((letter, col) => {
-          const status = attempt.feedback[col]
-          newBoard[row][col] = { letter, status }
+      const data = await submitGuess(gameId, guess)
+
+      setBoard(prev => {
+        const newBoard = prev.map(row => row.slice())
+        newBoard[rowIndex] = newBoard[rowIndex].map((tile, c) => (
+          c < WORD_LENGTH ? { letter: guess[c], status: data.feedback[c] } : tile
+        ))
+        return newBoard
+      })
+      setRevealingRow(rowIndex)
+      setTimeout(() => setRevealingRow(null), WORD_LENGTH * 200 + 500)
+
+      setKeyStates(prev => {
+        const newKeyStates = { ...prev }
+        data.feedback.forEach((status, c) => {
+          const letter = guess[c]
           if (!newKeyStates[letter] || priority(status) > priority(newKeyStates[letter])) {
             newKeyStates[letter] = status
           }
         })
+        return newKeyStates
       })
-      setBoard(newBoard)
-      setCurrentRow(data.attempts.length)
       setIsOver(data.is_over)
-      setKeyStates(newKeyStates)
       if (data.is_over) {
-        setModal({ type: data.is_won ? 'win' : 'lose', word: data.secret_word })
+        localStorage.removeItem('wordle_game_id')
+        localStorage.removeItem('wordle_language')
+        setTimeout(() => setModal({ type: data.is_won ? 'win' : 'lose', word: data.secret_word }), WORD_LENGTH * 200 + 300)
       }
-    } catch (e) {
-      localStorage.removeItem('wordle_game_id')
-      localStorage.removeItem('wordle_language')
-      setShowLangOverlay(true)
+      setCurrentInput('')
+      setCurrentRow(prev => prev + 1)
+    } catch (err) {
+      setShakeRow(currentRow)
+      setTimeout(() => setShakeRow(null), 400)
+      showToastMsg(err instanceof Error ? err.message : 'Erreur réseau')
+    } finally {
+      setIsSubmitting(false)
     }
-  }
+  }, [currentInput, currentRow, gameId, isOver, isSubmitting, showToastMsg])
 
-  useEffect(() => {
-    restoreGame()
-  }, [])
-
-  useEffect(() => {
-    function onKeyDown(e) {
-      if (isOver) return
-      if (e.key === 'Enter') handleEnter()
-      else if (e.key === 'Backspace') setCurrentInput(prev => prev.slice(0, -1))
-      else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleLetter(e.key.toUpperCase())
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [isOver, currentInput, currentRow, isSubmitting, gameId])
-
-  function handleLetter(letter) {
-    if (isSubmitting || currentInput.length >= WORD_LENGTH) return
-    setCurrentInput(prev => prev + letter)
-  }
-
-  function handleEnter() {
-    if (isSubmitting || !gameId) return
+  const handleEnter = useCallback(() => {
+    if (isSubmitting || isOver || !gameId) return
     if (currentInput.length < WORD_LENGTH) {
       setShakeRow(currentRow)
       setTimeout(() => setShakeRow(null), 400)
@@ -150,47 +212,18 @@ export default function GamePage() {
       return
     }
     doSubmit()
-  }
+  }, [currentInput.length, currentRow, doSubmit, gameId, isOver, isSubmitting, language, showToastMsg])
 
-  async function doSubmit() {
-    if (isSubmitting) return
-    setIsSubmitting(true)
-    const guess = currentInput
-    try {
-      const data = await submitGuess(gameId, guess)
-      // Update board
-      const newBoard = [...board]
-      data.feedback.forEach((status, c) => {
-        newBoard[currentRow][c] = { letter: guess[c], status }
-      })
-      setBoard(newBoard)
-      // Update key states
-      const newKeyStates = { ...keyStates }
-      data.feedback.forEach((status, c) => {
-        const letter = guess[c]
-        if (!newKeyStates[letter] || priority(status) > priority(newKeyStates[letter])) {
-          newKeyStates[letter] = status
-        }
-      })
-      setKeyStates(newKeyStates)
-      setIsOver(data.is_over)
-      if (data.is_over) {
-        setTimeout(() => setModal({ type: data.is_won ? 'win' : 'lose', word: data.secret_word }), WORD_LENGTH * 200 + 300)
-      }
-      setCurrentInput('')
-      setCurrentRow(prev => prev + 1)
-    } catch (e) {
-      setShakeRow(currentRow)
-      setTimeout(() => setShakeRow(null), 400)
-      showToastMsg(e.message)
-    } finally {
-      setIsSubmitting(false)
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (isOver || isSubmitting) return
+      if (e.key === 'Enter') handleEnter()
+      else if (e.key === 'Backspace') handleBackspace()
+      else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleLetter(e.key.toUpperCase())
     }
-  }
-
-  function priority(status) {
-    return { CORRECT: 3, MISPLACED: 2, ABSENT: 1 }[status] || 0
-  }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOver, isSubmitting, handleEnter, handleBackspace, handleLetter])
 
   const rows = KEYBOARDS[language]
 
@@ -240,7 +273,7 @@ export default function GamePage() {
           {board.map((row, r) => (
             <div key={r} className={`grid grid-cols-5 gap-1.5 ${shakeRow === r ? 'animate-shake' : ''}`}>
               {row.map((tile, c) => (
-                <Tile key={c} letter={r === currentRow ? currentInput[c] || '' : tile.letter} status={r === currentRow ? (currentInput[c] ? 'pending' : 'empty') : tile.status} delay={r === currentRow ? 0 : undefined} pop={r === currentRow && c === currentInput.length - 1} />
+                <Tile key={c} letter={r === currentRow ? currentInput[c] || '' : tile.letter} status={r === currentRow ? (currentInput[c] ? 'pending' : 'empty') : tile.status} delay={r === revealingRow ? c * 200 : undefined} pop={r === currentRow && c === currentInput.length - 1} />
               ))}
             </div>
           ))}
@@ -260,11 +293,11 @@ export default function GamePage() {
                   ABSENT: 'bg-surface-variant text-on-surface opacity-60',
                 }
                 return (
-                  <button key={letter} onClick={() => {
+                  <button key={letter} disabled={isSubmitting || isOver} onClick={() => {
                     if (letter === 'ENTER') handleEnter()
-                    else if (letter === '⌫') setCurrentInput(prev => prev.slice(0, -1))
+                    else if (letter === '⌫') handleBackspace()
                     else handleLetter(letter)
-                  }} className={`${base} ${styles[status] || 'bg-surface-container-high text-on-surface hover:bg-surface-bright'}`}>
+                  }} className={`${base} ${isSubmitting || isOver ? 'opacity-60 cursor-not-allowed' : ''} ${styles[status] || 'bg-surface-container-high text-on-surface hover:bg-surface-bright'}`}>
                     {letter === '⌫' ? <span className="material-symbols-outlined text-base">backspace</span> : letter}
                   </button>
                 )

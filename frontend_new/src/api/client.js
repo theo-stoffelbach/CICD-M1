@@ -1,4 +1,9 @@
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const DEFAULT_API =
+  typeof window === 'undefined'
+    ? 'http://127.0.0.1:8000'
+    : `${window.location.protocol}//${window.location.hostname}:8000`
+
+const API = import.meta.env.VITE_API_URL || DEFAULT_API
 
 async function apiFetch(url, options = {}) {
   const token = localStorage.getItem('wordle_token')

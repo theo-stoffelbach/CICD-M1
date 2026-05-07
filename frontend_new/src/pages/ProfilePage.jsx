@@ -32,7 +32,7 @@ export default function ProfilePage() {
         const [u, h] = await Promise.all([getMe(), getHistory()])
         setUser(u)
         setHistory(h)
-      } catch (e) {
+      } catch {
         logout()
         navigate('/auth')
       } finally {
@@ -188,7 +188,7 @@ export default function ProfilePage() {
               <p className="section-title !mb-0">Parties récentes</p>
               <div className="flex gap-1.5">
                 {['all', 'won', 'lost'].map(f => (
-                  <button key={f} onClick={() => setFilter(f)} className={`text-xs font-headline font-bold px-2.5 py-0.5 rounded-full border-none cursor-pointer transition-colors ${filter === f ? 'bg-primary text-on-primary' : 'bg-transparent text-outline-variant border border-outline-variant'}`}>
+                  <button key={f} onClick={() => setFilter(f)} className={`text-xs font-headline font-bold px-2.5 py-0.5 rounded-full border cursor-pointer transition-colors ${filter === f ? 'bg-primary text-on-primary border-primary' : 'bg-transparent text-outline-variant border-outline-variant'}`}>
                     {f === 'all' ? 'Tout' : f === 'won' ? 'Victoires' : 'Défaites'}
                   </button>
                 ))}
@@ -301,7 +301,7 @@ function LangStat({ flag, count, label, pct, delay }) {
       <span className="font-headline font-extrabold text-xl text-primary">{count}</span>
       <span className="text-[0.68rem] text-outline font-headline font-semibold tracking-wider uppercase">{label}</span>
       <div className="w-full h-1 bg-outline-variant rounded-full">
-        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%`, animationDelay }} />
+        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%`, animationDelay: delay }} />
       </div>
     </div>
   )

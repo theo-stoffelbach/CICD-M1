@@ -6,15 +6,6 @@ function Icon({ name, className = '' }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>
 }
 
-function ShakeField({ id, error, children }) {
-  return (
-    <div>
-      {children}
-      {error && <p className="text-xs mt-1 text-error">{error}</p>}
-    </div>
-  )
-}
-
 export default function AuthPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('login')

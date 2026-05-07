@@ -105,3 +105,4 @@
 .animate-shake  { animation: shake 0.4s ease; }
 .tile-flip      { animation: flip 0.5s ease forwards; }
 .card-enter     { animation: fadeUp 0.4s cubic-bezier(.22,1,.36,1) both; }
+.fade-up        { animation: fadeUp 0.4s cubic-bezier(.22,1,.36,1) both; }
