@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  # ─── Base de données ───────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: wordle-db
+    environment:
+      POSTGRES_DB: wordle
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d wordle"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend FastAPI ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wordle-api
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/wordle
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Frontend Nginx ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wordle-front
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
