@@ -1,1 +1,1 @@
-from . import auth, users
+from . import auth as auth, users as users
