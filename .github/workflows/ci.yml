@@ -2,7 +2,7 @@ name: CI FastAPI
 
 on:
   push:
-    branches: [main]
+    branches: [US-MET-02]
   pull_request:
     branches: [develop]
 
