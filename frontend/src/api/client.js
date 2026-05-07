@@ -15,6 +15,15 @@ async function apiFetch(url, options = {}) {
   return fetch(`${API}${url}`, opts)
 }
 
+async function readError(res, fallback) {
+  try {
+    const data = await res.json()
+    return data.detail || fallback
+  } catch {
+    return fallback
+  }
+}
+
 export async function login(email, password) {
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
@@ -52,13 +61,35 @@ export async function getHistory() {
   return res.json()
 }
 
+export async function getLeaderboard() {
+  const res = await apiFetch('/users/leaderboard')
+  if (!res.ok) throw new Error('Erreur classement')
+  return res.json()
+}
+
+export async function getLeaderboards() {
+  const res = await apiFetch('/users/leaderboards')
+  if (!res.ok) throw new Error('Erreur classements')
+  return res.json()
+}
+
 export async function createGame(language) {
   const res = await apiFetch('/game', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ language }),
   })
-  if (!res.ok) throw new Error('Erreur création partie')
+  if (!res.ok) throw new Error(await readError(res, 'Erreur création partie'))
+  return res.json()
+}
+
+export async function createDailyGame(language) {
+  const res = await apiFetch('/game/daily', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language }),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'Erreur défi du jour'))
   return res.json()
 }
 
@@ -86,6 +117,8 @@ export function logout() {
   localStorage.removeItem('wordle_user')
   localStorage.removeItem('wordle_game_id')
   localStorage.removeItem('wordle_language')
+  localStorage.removeItem('wordle_game_mode')
+  localStorage.removeItem('wordle_daily_date')
 }
 
 export function isLoggedIn() {

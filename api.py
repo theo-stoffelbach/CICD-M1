@@ -7,29 +7,69 @@ Endpoints :
   GET  /game/{id}         → Consulter l'état de la partie
 """
 
-import uuid
 import logging
+import uuid
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from auth_utils import get_current_user_optional
+from auth_utils import get_current_user, get_current_user_optional
 from database import engine, get_db
 from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLengthError
-from domain.game import Game, MAX_ATTEMPTS
+from domain.game import Game
+from engagement import CLASSIC_GAME_MODE, DAILY_GAME_MODE, DAILY_SCORE_MULTIPLIER, compute_game_score
 from infra.file_dictionary import FileDictionary
 from models import Base, GameHistory
 from routers import auth, users
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class GameSession:
+    game: Game
+    user_id: int | None
+    language: str
+    mode: str = CLASSIC_GAME_MODE
+    daily_date: date | None = None
+
+
+class FixedWordDictionary:
+    def __init__(self, dictionary: FileDictionary, secret_word: str) -> None:
+        self._dictionary = dictionary
+        self._secret_word = secret_word
+
+    def get_random_word(self) -> str:
+        return self._secret_word
+
+    def is_valid_word(self, word: str) -> bool:
+        return self._dictionary.is_valid_word(word)
+
+
+def _ensure_game_history_schema() -> None:
+    inspector = inspect(engine)
+    if "game_history" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("game_history")}
+    with engine.begin() as connection:
+        if "mode" not in columns:
+            connection.execute(text("ALTER TABLE game_history ADD COLUMN mode VARCHAR DEFAULT 'classic' NOT NULL"))
+        if "daily_date" not in columns:
+            connection.execute(text("ALTER TABLE game_history ADD COLUMN daily_date DATE"))
+
+
 app = FastAPI(title="Wordle API")
 
 Base.metadata.create_all(bind=engine)
+_ensure_game_history_schema()
 app.include_router(auth.router)
 app.include_router(users.router)
 
@@ -41,8 +81,8 @@ DICTIONARIES = {
 }
 DEFAULT_LANGUAGE = "fr"
 
-# Stockage en mémoire des parties en cours { game_id: (Game, user_id | None, language) }
-games: dict[str, tuple[Game, int | None, str]] = {}
+# Stockage en mémoire des parties en cours.
+games: dict[str, GameSession] = {}
 
 
 # --- Schémas de requête / réponse ---
@@ -53,6 +93,8 @@ class NewGameRequest(BaseModel):
 class NewGameResponse(BaseModel):
     game_id: str
     language: str
+    mode: str
+    daily_date: date | None = None
 
 class GuessRequest(BaseModel):
     word: str
@@ -66,6 +108,9 @@ class GuessResponse(BaseModel):
     is_over: bool
     is_won: bool
     attempts_left: int
+    score: int
+    mode: str
+    daily_date: date | None = None
     attempts: list[AttemptItem]
     secret_word: str | None    # révélé uniquement quand la partie est terminée
 
@@ -73,6 +118,8 @@ class GameStateResponse(BaseModel):
     is_over: bool
     is_won: bool
     attempts_left: int
+    mode: str
+    daily_date: date | None = None
     attempts: list[AttemptItem]
     secret_word: str | None    # révélé uniquement quand la partie est terminée
 
@@ -85,15 +132,46 @@ def create_game(
     current_user = Depends(get_current_user_optional),
 ):
     """Démarre une nouvelle partie dans la langue choisie."""
-    if body.language not in DICTIONARIES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Langue inconnue : '{body.language}'. Langues disponibles : {list(DICTIONARIES.keys())}"
-        )
+    _validate_language(body.language)
 
     game_id = str(uuid.uuid4())
-    games[game_id] = (Game(DICTIONARIES[body.language]), current_user.id if current_user else None, body.language)
-    return NewGameResponse(game_id=game_id, language=body.language)
+    games[game_id] = GameSession(
+        game=Game(DICTIONARIES[body.language]),
+        user_id=current_user.id if current_user else None,
+        language=body.language,
+    )
+    return NewGameResponse(game_id=game_id, language=body.language, mode=CLASSIC_GAME_MODE)
+
+
+@app.post("/game/daily", response_model=NewGameResponse)
+def create_daily_game(
+    body: NewGameRequest,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Démarre le défi du jour, identique pour tous les joueurs d'une langue."""
+    _validate_language(body.language)
+    today = date.today()
+    user_id = current_user.id
+    if _has_played_daily_challenge(db, user_id, body.language, today):
+        raise HTTPException(status_code=409, detail="Défi du jour déjà joué.")
+
+    dictionary = DICTIONARIES[body.language]
+    secret_word = dictionary.get_word_for_key(f"{body.language}:{today.isoformat()}")
+    game_id = str(uuid.uuid4())
+    games[game_id] = GameSession(
+        game=Game(FixedWordDictionary(dictionary, secret_word)),
+        user_id=user_id,
+        language=body.language,
+        mode=DAILY_GAME_MODE,
+        daily_date=today,
+    )
+    return NewGameResponse(
+        game_id=game_id,
+        language=body.language,
+        mode=DAILY_GAME_MODE,
+        daily_date=today,
+    )
 
 
 @app.post("/game/{game_id}/guess", response_model=GuessResponse)
@@ -103,43 +181,73 @@ def guess(
     db: Session = Depends(get_db),
 ):
     """Soumet un mot pour la partie en cours."""
-    game, user_id, language = _get_game_or_404(game_id)
+    session = _get_game_or_404(game_id)
+    if (
+        session.mode == DAILY_GAME_MODE
+        and session.user_id is not None
+        and session.daily_date is not None
+        and _has_played_daily_challenge(db, session.user_id, session.language, session.daily_date)
+    ):
+        raise HTTPException(status_code=409, detail="Défi du jour déjà joué.")
 
     try:
-        feedback = game.guess(body.word)
+        feedback = session.game.guess(body.word)
     except (InvalidWordError, InvalidWordLengthError, GameAlreadyOverError) as error:
         raise HTTPException(status_code=422, detail=str(error))
 
-    if game.is_over and user_id is not None:
+    score = 0
+    if session.game.is_over:
+        attempts_count = len(session.game.attempts)
+        multiplier = DAILY_SCORE_MULTIPLIER if session.mode == DAILY_GAME_MODE else 1
+        score = compute_game_score(session.game.is_won, attempts_count, multiplier=multiplier)
+
+    if session.game.is_over and session.user_id is not None:
         try:
-            attempts_count = len(game.attempts)
-            score = (MAX_ATTEMPTS - attempts_count + 1) * 100 if game.is_won else 0
             db.add(GameHistory(
-                user_id=user_id,
-                secret_word=game.secret_word.value,
+                user_id=session.user_id,
+                secret_word=session.game.secret_word.value,
                 attempts_count=attempts_count,
-                is_won=game.is_won,
+                is_won=session.game.is_won,
                 score=score,
-                language=language,
+                language=session.language,
+                mode=session.mode,
+                daily_date=session.daily_date,
             ))
             db.commit()
         except SQLAlchemyError:
             db.rollback()
             logger.exception("Impossible d'enregistrer l'historique de la partie %s", game_id)
 
-    return _build_guess_response(game, feedback)
+    return _build_guess_response(session, feedback, score)
 
 
 @app.get("/game/{game_id}", response_model=GameStateResponse)
 def get_game_state(game_id: str):
     """Retourne l'état courant de la partie (sans révéler le mot secret)."""
-    game, _, _ = _get_game_or_404(game_id)
-    return _build_state_response(game)
+    session = _get_game_or_404(game_id)
+    return _build_state_response(session)
 
 
 # --- Utilitaires ---
 
-def _get_game_or_404(game_id: str) -> tuple[Game, int | None, str]:
+def _validate_language(language: str) -> None:
+    if language not in DICTIONARIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Langue inconnue : '{language}'. Langues disponibles : {list(DICTIONARIES.keys())}",
+        )
+
+
+def _has_played_daily_challenge(db: Session, user_id: int, language: str, today: date) -> bool:
+    return db.query(GameHistory).filter(
+        GameHistory.user_id == user_id,
+        GameHistory.language == language,
+        GameHistory.mode == DAILY_GAME_MODE,
+        GameHistory.daily_date == today,
+    ).first() is not None
+
+
+def _get_game_or_404(game_id: str) -> GameSession:
     """Récupère une partie par son ID ou lève une 404."""
     entry = games.get(game_id)
     if entry is None:
@@ -154,24 +262,29 @@ def _attempts_to_items(game: Game) -> list[AttemptItem]:
     ]
 
 
-def _build_guess_response(game: Game, feedback: list) -> GuessResponse:
+def _build_guess_response(session: GameSession, feedback: list, score: int) -> GuessResponse:
     return GuessResponse(
         feedback=[f.value for f in feedback],
-        is_over=game.is_over,
-        is_won=game.is_won,
-        attempts_left=game.attempts_left,
-        attempts=_attempts_to_items(game),
-        secret_word=game.secret_word.value if game.is_over else None,
+        is_over=session.game.is_over,
+        is_won=session.game.is_won,
+        attempts_left=session.game.attempts_left,
+        score=score,
+        mode=session.mode,
+        daily_date=session.daily_date,
+        attempts=_attempts_to_items(session.game),
+        secret_word=session.game.secret_word.value if session.game.is_over else None,
     )
 
 
-def _build_state_response(game: Game) -> GameStateResponse:
+def _build_state_response(session: GameSession) -> GameStateResponse:
     return GameStateResponse(
-        is_over=game.is_over,
-        is_won=game.is_won,
-        attempts_left=game.attempts_left,
-        attempts=_attempts_to_items(game),
-        secret_word=game.secret_word.value if game.is_over else None,
+        is_over=session.game.is_over,
+        is_won=session.game.is_won,
+        attempts_left=session.game.attempts_left,
+        mode=session.mode,
+        daily_date=session.daily_date,
+        attempts=_attempts_to_items(session.game),
+        secret_word=session.game.secret_word.value if session.game.is_over else None,
     )
 
 

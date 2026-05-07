@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createGame, submitGuess, getGameState } from '../api/client'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { createGame, createDailyGame, submitGuess, getGameState } from '../api/client'
 
 const WORD_LENGTH = 5
 const MAX_ATTEMPTS = 6
+const CLASSIC_MODE = 'classic'
+const DAILY_MODE = 'daily'
 const KEYBOARDS = {
   en: [
     ['Q','W','E','R','T','Y','U','I','O','P'],
@@ -50,8 +52,12 @@ function Tile({ letter, status, delay, pop }) {
 
 export default function GamePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const autoLaunchRef = useRef(null)
   const [gameId, setGameId] = useState(() => localStorage.getItem('wordle_game_id'))
   const [language, setLanguage] = useState(() => localStorage.getItem('wordle_language') || 'fr')
+  const [gameMode, setGameMode] = useState(() => localStorage.getItem('wordle_game_mode') || CLASSIC_MODE)
+  const [dailyDate, setDailyDate] = useState(() => localStorage.getItem('wordle_daily_date'))
   const [board, setBoard] = useState(createEmptyBoard)
   const [currentRow, setCurrentRow] = useState(0)
   const [currentInput, setCurrentInput] = useState('')
@@ -60,7 +66,7 @@ export default function GamePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showLangOverlay, setShowLangOverlay] = useState(() => !localStorage.getItem('wordle_game_id'))
   const [toast, setToast] = useState(null)
-  const [modal, setModal] = useState(null) // { type: 'win'|'lose', word: string }
+  const [modal, setModal] = useState(null) // { type: 'win'|'lose', word: string, score: number, mode: string }
   const [shakeRow, setShakeRow] = useState(null)
   const [revealingRow, setRevealingRow] = useState(null)
 
@@ -86,17 +92,65 @@ export default function GamePage() {
     try {
       const data = await createGame(lang)
       setGameId(data.game_id)
+      setGameMode(data.mode || CLASSIC_MODE)
+      setDailyDate(data.daily_date || null)
       localStorage.setItem('wordle_game_id', data.game_id)
       localStorage.setItem('wordle_language', lang)
+      localStorage.setItem('wordle_game_mode', data.mode || CLASSIC_MODE)
+      localStorage.removeItem('wordle_daily_date')
     } catch {
       showToastMsg('Impossible de joindre l\'API')
     }
   }, [initBoard, showToastMsg])
 
+  const startDailyGame = useCallback(async (lang = language) => {
+    setLanguage(lang)
+    setShowLangOverlay(false)
+    initBoard()
+    try {
+      const data = await createDailyGame(lang)
+      setGameId(data.game_id)
+      setGameMode(data.mode || DAILY_MODE)
+      setDailyDate(data.daily_date || null)
+      localStorage.setItem('wordle_game_id', data.game_id)
+      localStorage.setItem('wordle_language', lang)
+      localStorage.setItem('wordle_game_mode', data.mode || DAILY_MODE)
+      if (data.daily_date) localStorage.setItem('wordle_daily_date', data.daily_date)
+      else localStorage.removeItem('wordle_daily_date')
+    } catch (err) {
+      setShowLangOverlay(true)
+      showToastMsg(err instanceof Error ? err.message : 'Impossible de lancer le défi')
+    }
+  }, [initBoard, language, showToastMsg])
+
+  useEffect(() => {
+    const mode = searchParams.get('mode')
+    if (!mode) return
+
+    const lang = searchParams.get('lang') || language
+    const launchKey = `${mode}:${lang}`
+    if (autoLaunchRef.current === launchKey) return
+
+    autoLaunchRef.current = launchKey
+    const timer = setTimeout(() => {
+      if (mode === DAILY_MODE) {
+        startDailyGame(lang)
+      } else {
+        startGame(lang)
+      }
+      navigate('/game', { replace: true })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [language, navigate, searchParams, startDailyGame, startGame])
+
   function giveUp() {
     localStorage.removeItem('wordle_game_id')
     localStorage.removeItem('wordle_language')
+    localStorage.removeItem('wordle_game_mode')
+    localStorage.removeItem('wordle_daily_date')
     setGameId(null)
+    setGameMode(CLASSIC_MODE)
+    setDailyDate(null)
     setShowLangOverlay(true)
   }
 
@@ -126,17 +180,21 @@ export default function GamePage() {
 
         setGameId(savedId)
         setLanguage(savedLang)
+        setGameMode(data.mode || CLASSIC_MODE)
+        setDailyDate(data.daily_date || null)
         setBoard(newBoard)
         setCurrentRow(data.attempts.length)
         setCurrentInput('')
         setIsOver(data.is_over)
         setKeyStates(newKeyStates)
-        setModal(data.is_over ? { type: data.is_won ? 'win' : 'lose', word: data.secret_word } : null)
+        setModal(data.is_over ? { type: data.is_won ? 'win' : 'lose', word: data.secret_word, score: 0, mode: data.mode || CLASSIC_MODE } : null)
         setShowLangOverlay(false)
       } catch {
         if (ignore) return
         localStorage.removeItem('wordle_game_id')
         localStorage.removeItem('wordle_language')
+        localStorage.removeItem('wordle_game_mode')
+        localStorage.removeItem('wordle_daily_date')
         setGameId(null)
         setShowLangOverlay(true)
       }
@@ -190,7 +248,15 @@ export default function GamePage() {
       if (data.is_over) {
         localStorage.removeItem('wordle_game_id')
         localStorage.removeItem('wordle_language')
-        setTimeout(() => setModal({ type: data.is_won ? 'win' : 'lose', word: data.secret_word }), WORD_LENGTH * 200 + 300)
+        localStorage.removeItem('wordle_game_mode')
+        localStorage.removeItem('wordle_daily_date')
+        setTimeout(() => setModal({
+          type: data.is_won ? 'win' : 'lose',
+          word: data.secret_word,
+          score: data.score || 0,
+          mode: data.mode || gameMode,
+          dailyDate: data.daily_date || dailyDate,
+        }), WORD_LENGTH * 200 + 300)
       }
       setCurrentInput('')
       setCurrentRow(prev => prev + 1)
@@ -201,7 +267,7 @@ export default function GamePage() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [currentInput, currentRow, gameId, isOver, isSubmitting, showToastMsg])
+  }, [currentInput, currentRow, dailyDate, gameId, gameMode, isOver, isSubmitting, showToastMsg])
 
   const handleEnter = useCallback(() => {
     if (isSubmitting || isOver || !gameId) return
@@ -232,8 +298,14 @@ export default function GamePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b border-surface-container bg-surface">
         <div className="flex justify-between items-center px-4 h-14 w-full max-w-lg mx-auto">
-          <span className="text-xl font-black tracking-tighter text-on-surface font-headline">WORDLE</span>
+          <button onClick={() => navigate('/')} className="text-xl font-black tracking-tighter text-on-surface font-headline">
+            WORDLE
+          </button>
           <div className="flex items-center gap-2">
+            <button onClick={() => startDailyGame(language)} title="Défi du jour" className={`px-2.5 py-1.5 rounded-xl font-headline font-bold text-xs flex items-center gap-1 transition-all ${gameMode === DAILY_MODE ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface hover:bg-surface-bright'}`}>
+              <span className="material-symbols-outlined text-base">today</span>
+              <span className="hidden sm:inline">Défi</span>
+            </button>
             <button onClick={giveUp} title="Abandonner / Rejouer" className="p-2 rounded-xl hover:bg-surface-container-high transition-all">
               <span className="material-symbols-outlined text-xl">refresh</span>
             </button>
@@ -264,6 +336,11 @@ export default function GamePage() {
             <button onClick={() => startGame('fr')} className="px-8 py-4 bg-primary-container text-on-primary-container font-black font-headline rounded-2xl text-xl hover:opacity-90 active:scale-95 transition-all">🇫🇷 FR</button>
             <button onClick={() => startGame('en')} className="px-8 py-4 bg-surface-container-high text-on-surface font-black font-headline rounded-2xl text-xl hover:bg-surface-bright active:scale-95 transition-all">🇬🇧 EN</button>
           </div>
+          <button onClick={() => startDailyGame(language)} className="px-6 py-3 bg-secondary-container text-on-secondary-container font-black font-headline rounded-2xl flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all">
+            <span className="material-symbols-outlined">today</span>
+            Défi du jour
+            <span className="text-xs uppercase opacity-80">x2</span>
+          </button>
         </div>
       )}
 
@@ -324,9 +401,14 @@ export default function GamePage() {
                       <div key={i} className="w-12 h-14 bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-black font-headline rounded-xl">{l}</div>
                     ))}
                   </div>
-                  <div className="flex gap-2 w-full">
-                    <button onClick={() => startGame('fr')} className="flex-1 py-3 bg-primary-container text-on-primary-container font-black font-headline rounded-xl hover:opacity-90 active:scale-95 transition-all">🇫🇷 FR</button>
-                    <button onClick={() => startGame('en')} className="flex-1 py-3 bg-surface-container-high text-on-surface font-black font-headline rounded-xl hover:bg-surface-bright active:scale-95 transition-all">🇬🇧 EN</button>
+                  <p className="font-headline font-extrabold text-lg text-secondary">+{modal.score} pts</p>
+                  {modal.mode === DAILY_MODE && (
+                    <p className="text-xs font-headline font-bold text-outline-variant uppercase">Défi du jour · points doublés</p>
+                  )}
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                    <button onClick={() => startGame(language)} className="py-3 bg-primary-container text-on-primary-container font-black font-headline rounded-xl hover:opacity-90 active:scale-95 transition-all">Rejouer</button>
+                    <button onClick={() => navigate('/')} className="py-3 bg-surface-container-high text-on-surface font-black font-headline rounded-xl hover:bg-surface-bright active:scale-95 transition-all">Accueil</button>
+                    <button onClick={() => navigate('/profile')} className="py-3 bg-surface-container-low text-on-surface font-black font-headline rounded-xl border border-outline-variant hover:bg-surface-container-high active:scale-95 transition-all">Scores</button>
                   </div>
                 </div>
               </>
@@ -340,9 +422,14 @@ export default function GamePage() {
                     <div key={i} className="w-12 h-14 bg-error-container text-on-error-container flex items-center justify-center text-2xl font-black font-headline rounded-xl">{l}</div>
                   ))}
                 </div>
-                <div className="flex gap-2 w-full">
-                  <button onClick={() => startGame('fr')} className="flex-1 py-3 bg-primary-container text-on-primary-container font-black font-headline rounded-xl hover:opacity-90 active:scale-95 transition-all">🇫🇷 FR</button>
-                  <button onClick={() => startGame('en')} className="flex-1 py-3 bg-surface-container-high text-on-surface font-black font-headline rounded-xl hover:bg-surface-bright active:scale-95 transition-all">🇬🇧 EN</button>
+                <p className="font-headline font-extrabold text-base text-outline">0 pt</p>
+                {modal.mode === DAILY_MODE && (
+                  <p className="text-xs font-headline font-bold text-outline-variant uppercase">Défi du jour</p>
+                )}
+                <div className="grid grid-cols-3 gap-2 w-full">
+                  <button onClick={() => startGame(language)} className="py-3 bg-primary-container text-on-primary-container font-black font-headline rounded-xl hover:opacity-90 active:scale-95 transition-all">Rejouer</button>
+                  <button onClick={() => navigate('/')} className="py-3 bg-surface-container-high text-on-surface font-black font-headline rounded-xl hover:bg-surface-bright active:scale-95 transition-all">Accueil</button>
+                  <button onClick={() => navigate('/profile')} className="py-3 bg-surface-container-low text-on-surface font-black font-headline rounded-xl border border-outline-variant hover:bg-surface-container-high active:scale-95 transition-all">Scores</button>
                 </div>
               </div>
             )}
