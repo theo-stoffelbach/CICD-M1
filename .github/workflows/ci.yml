@@ -2,7 +2,7 @@ name: CI FastAPI
 
 on:
   push:
-    branches: [US-DEV-02, develop]
+    branches: []
   pull_request:
     branches: [develop]
 
@@ -24,6 +24,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Mec, t'es suis bo
+      - name: Lint avec Ruff
         run: |
-          echo "Mec, t'es suis bo ^^"
+          pip install ruff
+          ruff check .
+
+      - name: Mec, t'es bo & t'es trop fort !
+        run: |
+          echo "Mec, t'es bo ^^"
+          echo "Mec, t'es trop fort ! ^^"
