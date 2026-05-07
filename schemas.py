@@ -35,3 +35,16 @@ class UserProfile(UserOut):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class GameHistoryOut(BaseModel):
+    id: int
+    secret_word: str
+    attempts_count: int
+    is_won: bool
+    score: int
+    language: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
