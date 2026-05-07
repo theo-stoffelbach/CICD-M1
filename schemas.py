@@ -27,6 +27,7 @@ class UserProfile(UserOut):
     games_played: int = 0
     games_won: int = 0
     win_rate: float = 0.0
+    total_score: int = 0
 
     class Config:
         from_attributes = True
