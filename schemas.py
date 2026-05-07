@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -16,6 +17,16 @@ class UserOut(BaseModel):
     id: int
     username: str
     email: str
+
+    class Config:
+        from_attributes = True
+
+
+class UserProfile(UserOut):
+    created_at: datetime
+    games_played: int = 0
+    games_won: int = 0
+    win_rate: float = 0.0
 
     class Config:
         from_attributes = True

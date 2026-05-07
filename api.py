@@ -19,12 +19,13 @@ from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLen
 from domain.game import Game
 from infra.file_dictionary import FileDictionary
 from models import Base
-from routers import auth
+from routers import auth, users
 
 app = FastAPI(title="Wordle API")
 
 Base.metadata.create_all(bind=engine)
 app.include_router(auth.router)
+app.include_router(users.router)
 
 # Autorise tous les origines en développement (frontend servi localement)
 app.add_middleware(
