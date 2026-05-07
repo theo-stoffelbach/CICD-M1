@@ -102,11 +102,14 @@ pytest tests/ --cov=domain -v
 |---------|----------|-------------|
 | `GET` | `/users/me` | Profil + stats |
 | `GET` | `/users/me/history` | Historique des parties |
+| `GET` | `/users/leaderboard` | Classement global |
+| `GET` | `/users/leaderboards` | Classements score, série, moyenne, défi du jour |
 
 ### Jeu
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | `POST` | `/game` | Créer une partie |
+| `POST` | `/game/daily` | Créer le défi du jour |
 | `POST` | `/game/{id}/guess` | Soumettre un mot |
 | `GET` | `/game/{id}` | État de la partie |
 
@@ -121,6 +124,10 @@ pytest tests/ --cov=domain -v
 - 📊 Profil utilisateur avec stats réelles (parties, victoires, score total)
 - 📜 Historique des parties sauvegardées
 - 🏆 Système de scoring (plus rapide = plus de points)
+- 📅 Défi du jour avec mot commun et points doublés
+- 🔥 Séries de victoires quotidiennes (streak courant + record)
+- 🥇 Classements par score actuel, record de série, score moyen et défi du jour
+- 🎖️ Badges de progression débloqués automatiquement
 - 🌍 Deux langues : Français et Anglais
 - ⌨️ Clavier virtuel + support clavier physique
 - ✨ Animations flip, shake, pop
@@ -178,6 +185,10 @@ CICD-M1/
 | Défaite | 0 pt |
 
 Formule : `(7 - nombre_de_tentatives) × 100`
+
+Le défi du jour applique un multiplicateur x2 sur cette formule.
+
+Les scores alimentent le profil, l'historique et les leaderboards.
 
 ---
 
