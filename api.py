@@ -8,6 +8,7 @@ Endpoints :
 """
 
 import logging
+import os
 import uuid
 from dataclasses import dataclass
 from datetime import date
@@ -221,6 +222,11 @@ def guess(
     return _build_guess_response(session, feedback, score)
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/game/{game_id}", response_model=GameStateResponse)
 def get_game_state(game_id: str):
     """Retourne l'état courant de la partie (sans révéler le mot secret)."""
@@ -289,9 +295,13 @@ def _build_state_response(session: GameSession) -> GameStateResponse:
 
 
 # Le middleware CORS enveloppe toute l'app ASGI, y compris les réponses 500.
+# CORS_ORIGINS : liste d'origines séparées par des virgules (ex: https://wordle.theo-stoffelbach.fr,http://localhost:5173)
+_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 app = CORSMiddleware(
     app,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )

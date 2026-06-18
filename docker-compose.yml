@@ -25,7 +25,7 @@ services:
     container_name: wordle-api
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/wordle
-      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SECRET_KEY: ${SECRET_KEY}
     ports:
       - "8000:8000"
     depends_on:

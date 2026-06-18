@@ -1,0 +1,90 @@
+services:
+  # ─── Base de données ───────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: wordle-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wordle_internal
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── Backend FastAPI ───────────────────────────────────────────────────────
+  backend:
+    image: ghcr.io/theo-stoffelbach/wordle-backend:latest
+    container_name: wordle-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    networks:
+      - wordle_internal
+      - webnet
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── Frontend Nginx ────────────────────────────────────────────────────────
+  frontend:
+    image: ghcr.io/theo-stoffelbach/wordle-frontend:latest
+    container_name: wordle-front
+    networks:
+      - webnet
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+
+networks:
+  webnet:
+    external: true
+  wordle_internal:
+    internal: true
+
+volumes:
+  postgres_data:
