@@ -16,8 +16,12 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import time
+
+from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel
-from starlette_prometheus import PrometheusMiddleware, metrics
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -75,8 +79,30 @@ _ensure_game_history_schema()
 app.include_router(auth.router)
 app.include_router(users.router)
 
-app.add_middleware(PrometheusMiddleware)
-app.add_route("/metrics", metrics)
+_HTTP_REQUESTS = Counter(
+    "http_requests_total",
+    "Nombre total de requêtes HTTP",
+    ["method", "path", "status"],
+)
+_HTTP_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "Latence des requêtes HTTP en secondes",
+    ["method", "path"],
+)
+
+
+class _MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start = time.time()
+        response = await call_next(request)
+        duration = time.time() - start
+        path = request.url.path
+        _HTTP_REQUESTS.labels(request.method, path, response.status_code).inc()
+        _HTTP_LATENCY.labels(request.method, path).observe(duration)
+        return response
+
+
+app.add_middleware(_MetricsMiddleware)
 
 # --- Dictionnaires disponibles par langue ---
 BASE_DIR = Path(__file__).parent
@@ -224,6 +250,11 @@ def guess(
             logger.exception("Impossible d'enregistrer l'historique de la partie %s", game_id)
 
     return _build_guess_response(session, feedback, score)
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")

@@ -9,5 +9,5 @@ python-jose[cryptography]
 python-multipart
 httpx
 pytest-asyncio
-starlette-prometheus
+prometheus-client
 
