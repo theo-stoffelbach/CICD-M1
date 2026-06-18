@@ -16,8 +16,8 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
+from starlette_prometheus import PrometheusMiddleware, metrics
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -75,7 +75,8 @@ _ensure_game_history_schema()
 app.include_router(auth.router)
 app.include_router(users.router)
 
-Instrumentator(should_group_untemplated=False).instrument(app).expose(app)
+app.add_middleware(PrometheusMiddleware)
+app.add_route("/metrics", metrics)
 
 # --- Dictionnaires disponibles par langue ---
 BASE_DIR = Path(__file__).parent
