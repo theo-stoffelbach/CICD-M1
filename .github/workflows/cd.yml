@@ -1,63 +1,57 @@
 name: CD
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
-  build-and-push:
-    name: Build & Push Docker images to GHCR
+  publish:
+    name: Build et push des images sur GHCR
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
     steps:
-      - name: Checkout
+      - name: Checkout du commit à déployer
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
-      - name: Log in to GHCR
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Se connecter à GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (backend)
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/wordle-backend
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix=sha-
-
-      - name: Build & push backend
+      - name: Build et push backend
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-
-      - name: Extract metadata (frontend)
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/wordle-frontend
           tags: |
-            type=raw,value=latest
-            type=sha,prefix=sha-
+            ghcr.io/${{ github.repository_owner }}/wordle-backend:latest
+            ghcr.io/${{ github.repository_owner }}/wordle-backend:${{ env.DEPLOY_SHA }}
 
-      - name: Build & push frontend
+      - name: Build et push frontend
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/wordle-frontend:latest
+            ghcr.io/${{ github.repository_owner }}/wordle-frontend:${{ env.DEPLOY_SHA }}
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL || 'https://wordle-api.theo-stoffelbach.fr' }}
