@@ -75,7 +75,7 @@ _ensure_game_history_schema()
 app.include_router(auth.router)
 app.include_router(users.router)
 
-Instrumentator(should_group_untemplated_requests=False).instrument(app).expose(app)
+Instrumentator(should_group_untemplated=False).instrument(app).expose(app)
 
 # --- Dictionnaires disponibles par langue ---
 BASE_DIR = Path(__file__).parent
