@@ -30,6 +30,8 @@ jobs:
         run: ruff check .
 
       - name: Test backend
+        env:
+          SECRET_KEY: ci-test-secret-not-used-in-prod
         run: pytest tests/ -v
 
   frontend:
