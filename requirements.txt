@@ -9,4 +9,5 @@ python-jose[cryptography]
 python-multipart
 httpx
 pytest-asyncio
+prometheus-fastapi-instrumentator
 

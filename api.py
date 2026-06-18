@@ -16,6 +16,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -73,6 +74,8 @@ Base.metadata.create_all(bind=engine)
 _ensure_game_history_schema()
 app.include_router(auth.router)
 app.include_router(users.router)
+
+Instrumentator().instrument(app).expose(app)
 
 # --- Dictionnaires disponibles par langue ---
 BASE_DIR = Path(__file__).parent
@@ -225,6 +228,15 @@ def guess(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Database not ready: {e}")
 
 
 @app.get("/game/{game_id}", response_model=GameStateResponse)

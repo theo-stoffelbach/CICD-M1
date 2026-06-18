@@ -4,8 +4,15 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [main]
-  workflow_dispatch: {}
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environnement cible"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, prod]
 
 jobs:
   publish:
@@ -17,6 +24,7 @@ jobs:
       packages: write
     env:
       DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+      TARGET_BRANCH: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'prod' && 'main' || 'develop') || github.event.workflow_run.head_branch }}
 
     steps:
       - name: Checkout du commit à déployer
@@ -34,24 +42,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build et push backend
+      - name: Déterminer les tags (prod=latest, develop=staging)
+        id: tags
+        run: |
+          if [ "$TARGET_BRANCH" = "main" ]; then
+            echo "env=prod" >> $GITHUB_OUTPUT
+            echo "backend_tags=ghcr.io/${{ github.repository_owner }}/wordle-backend:latest,ghcr.io/${{ github.repository_owner }}/wordle-backend:$DEPLOY_SHA" >> $GITHUB_OUTPUT
+            echo "frontend_tags=ghcr.io/${{ github.repository_owner }}/wordle-frontend:latest,ghcr.io/${{ github.repository_owner }}/wordle-frontend:$DEPLOY_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "env=staging" >> $GITHUB_OUTPUT
+            echo "backend_tags=ghcr.io/${{ github.repository_owner }}/wordle-backend:staging,ghcr.io/${{ github.repository_owner }}/wordle-backend:staging-$DEPLOY_SHA" >> $GITHUB_OUTPUT
+            echo "frontend_tags=ghcr.io/${{ github.repository_owner }}/wordle-frontend:staging,ghcr.io/${{ github.repository_owner }}/wordle-frontend:staging-$DEPLOY_SHA" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build et push backend (${{ steps.tags.outputs.env }})
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/wordle-backend:latest
-            ghcr.io/${{ github.repository_owner }}/wordle-backend:${{ env.DEPLOY_SHA }}
+          tags: ${{ steps.tags.outputs.backend_tags }}
 
-      - name: Build et push frontend
+      - name: Build et push frontend (${{ steps.tags.outputs.env }})
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/wordle-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/wordle-frontend:${{ env.DEPLOY_SHA }}
+          tags: ${{ steps.tags.outputs.frontend_tags }}
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL || 'https://wordle-api.theo-stoffelbach.fr' }}
+            VITE_API_URL=${{ steps.tags.outputs.env == 'prod' && (vars.VITE_API_URL || 'https://wordle-api.theo-stoffelbach.fr') || (vars.VITE_API_URL_STAGING || 'https://wordle-api-staging.theo-stoffelbach.fr') }}
