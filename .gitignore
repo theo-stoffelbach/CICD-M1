@@ -12,6 +12,11 @@ htmlcov/
 # Environnement virtuel
 .venv/
 
+# Secrets locaux
+.env
+.env.local
+.env.*.local
+
 # Claude Code
 .claude/
 CLAUDE.md
