@@ -264,6 +264,25 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 #s10 .bilan-table tr:last-child td{border-bottom:none}
 .crit-name{font-weight:600}
 .crit-detail{color:var(--muted);font-size:.72rem;margin-top:.2rem}
+
+/* ─── Notes orales ───────────────────────────────── */
+.notes{
+  display:none;position:absolute;bottom:0;left:0;right:2.5rem;
+  background:color-mix(in srgb,var(--surface) 97%,var(--accent));
+  border-top:1px solid var(--border);
+  padding:.65rem 5.5rem;font-size:.72rem;color:var(--muted);line-height:1.65;
+  z-index:10;
+}
+.notes strong{color:var(--accent);font-weight:600;}
+body.show-notes .notes{display:block}
+#notes-btn{
+  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  padding:.25rem .7rem;border-radius:4px;cursor:pointer;transition:all .2s;z-index:60;
+}
+#notes-btn:hover{border-color:var(--accent);color:var(--accent)}
+body.show-notes #notes-btn{border-color:var(--accent);color:var(--accent)}
 </style>
 
 <div id="progress"></div>
@@ -278,6 +297,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
       <div class="cover-title">Projet CI/CD<br>Wordle</div>
       <p class="cover-sub">Transformation d'un projet Wordle en solution fullstack<br>conteneurisée, orchestrée et déployée en production.</p>
       <div class="tech-badges">
+    <div class="notes">Bonjour, nous allons vous présenter notre projet CI/CD. Nous avons repris le Wordle du module <strong>Tests et Tests Unitaires</strong> pour le transformer en une application fullstack complète, conteneurisée, avec une chaîne CI/CD automatisée déployée en production sur un <strong>NAS Synology personnel</strong>. La stack couvre le backend FastAPI en Python, le frontend React, une base PostgreSQL, et tout l'outillage DevOps que vous allez voir.</div>
         <span class="tech-badge">Python 3.14</span>
         <span class="tech-badge">FastAPI</span>
         <span class="tech-badge">React 19</span>
@@ -293,6 +313,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 
   <!-- SLIDE 2 — Architecture globale -->
   <section class="slide" id="s2">
+    <div class="notes">Notre stack tourne entièrement sur un <strong>NAS Synology personnel</strong>. Le trafic entre via <strong>Nginx Proxy Manager</strong> qui assure le SSL Let's Encrypt et le routing par sous-domaine. Le frontend React et l'API FastAPI communiquent sur le réseau Docker <code>webnet</code>. La base PostgreSQL est sur un réseau interne <strong>isolé</strong>, inaccessible depuis l'extérieur. Côté déploiement : GitHub Actions build et pousse les images sur <strong>GHCR</strong>, puis <strong>Watchtower</strong> sur le NAS détecte la nouvelle image toutes les 5 minutes et redémarre le container — zéro intervention manuelle.</div>
     <div class="arch-left">
       <div class="eyebrow">Vue d'ensemble</div>
       <h2>Architecture<br>globale</h2>
@@ -360,6 +381,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 
   <!-- SLIDE 3 — Pipeline CI -->
   <section class="slide" id="s3">
+    <div class="notes">La CI se déclenche sur chaque <strong>push et pull request</strong> vers develop et main. Trois jobs : le backend lance <strong>ruff</strong> pour le lint et <strong>pytest</strong> pour les tests ; le frontend lance <strong>ESLint</strong> et <strong>Vite build</strong> en parallèle. Ensuite le job Docker attend les deux, valide le compose et construit les images. Back et front tournent simultanément ce qui ramène le temps total à environ <strong>3 minutes</strong>. Aucun secret n'est requis pour la CI — seule la CD a besoin de droits GHCR.</div>
     <div class="eyebrow">US-DEV-02 · US-DEV-03 · US-DEV-04</div>
     <h2>Pipeline CI</h2>
     <div class="trigger-row">
@@ -401,6 +423,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 
   <!-- SLIDE 4 — Pipeline CD -->
   <section class="slide" id="s4">
+    <div class="notes">La CD utilise <strong>workflow_run</strong> plutôt qu'un simple push trigger. Pourquoi ? Parce qu'avec push, CI et CD démarrent en parallèle — on peut pusher une image dont les tests n'ont pas encore fini. Avec workflow_run, la CD attend que la CI soit <strong>verte</strong>. On checkout exactement le <strong>SHA validé</strong> par la CI, on build avec buildx, et on pousse sur GHCR avec deux tags : <strong>:latest</strong> pour que Watchtower le détecte automatiquement, et <strong>:sha</strong> pour la traçabilité et un éventuel rollback. On a aussi ajouté <strong>workflow_dispatch</strong> pour tester la CD manuellement depuis l'onglet Actions de GitHub.</div>
     <div class="eyebrow">US-DEV-07 — Front + Back</div>
     <h2>Pipeline CD</h2>
     <div style="margin-bottom:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
@@ -458,6 +481,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 
   <!-- SLIDE 5 — Features métier -->
   <section class="slide" id="s5">
+    <div class="notes">Toutes les <strong>8 features requises</strong> par le barème sont implémentées. Inscription et connexion avec <strong>JWT + bcrypt</strong>, profil avec vraies statistiques calculées depuis la base, historique des parties en <strong>PostgreSQL</strong>, scoring selon le nombre de tentatives, streak quotidien qui se réinitialise si un jour est manqué, leaderboard global, et le système d'<strong>achievements</strong> avec badges débloquables. Le tout est intégré dans le frontend React avec le token JWT stocké en localStorage et envoyé dans le header Authorization.</div>
     <div class="eyebrow">US-MET-01 → US-MET-09</div>
     <h2>Features métier</h2>
     <div class="feat-grid">
@@ -514,6 +538,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 
   <!-- SLIDE 6 — Infrastructure & Sécurité -->
   <section class="slide" id="s6">
+    <div class="notes">Le NAS dispose de services transversaux déjà en production : <strong>Nginx Proxy Manager</strong> pour le reverse proxy et SSL, <strong>Watchtower Central</strong> pour l'auto-update des images depuis GHCR, <strong>Healthcheck Central</strong> pour surveiller les containers et les redémarrer en cas de problème, un <strong>Docker Socket Proxy</strong> pour ne jamais exposer le socket Docker directement, et une stack monitoring complète. Côté sécurité : <code>no-new-privileges</code> sur tous les containers, la DB est sur un réseau interne <strong>isolé</strong>, les ports applicatifs ne sont pas exposés publiquement — tout passe par NPM — et les secrets sont dans des <strong>.env avec chmod 600</strong>.</div>
     <div class="infra-left">
       <div class="eyebrow">NAS Ugreen</div>
       <h2 style="font-size:1.5rem;margin-bottom:1rem">Infrastructure</h2>
@@ -559,14 +584,13 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Réseau interne isolé pour la DB</strong><br><span style="color:var(--muted);font-size:.7rem">PostgreSQL unreachable depuis Internet, réseau bridge interne</span></div></div>
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Ports non exposés côté app</strong><br><span style="color:var(--muted);font-size:.7rem">Front et Back sur webnet, NPM assure le seul point d'entrée</span></div></div>
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Secrets via .env chmod 600</strong><br><span style="color:var(--muted);font-size:.7rem">Variables injectées au runtime, jamais dans le code</span></div></div>
-        <div class="sec-item"><span class="sec-icon">⚠️</span><div><strong>CORS codé en dur (localhost only)</strong><br><span style="color:var(--muted);font-size:.7rem">api.py:294 — bloquera le front en prod, à corriger via CORS_ORIGINS env</span></div></div>
-        <div class="sec-item"><span class="sec-icon">⚠️</span><div><strong>SECRET_KEY fallback insécurisé</strong><br><span style="color:var(--muted);font-size:.7rem">auth_utils.py — valeur par défaut "supersecretkey" si env var oubliée</span></div></div>
       </div>
     </div>
   </section>
 
   <!-- SLIDE 7 — Monitoring -->
   <section class="slide" id="s7">
+    <div class="notes">La stack monitoring est déjà <strong>opérationnelle</strong> sur le NAS. <strong>Prometheus</strong> collecte les métriques système et des containers via cAdvisor et Node Exporter. <strong>Grafana</strong> offre des dashboards CPU, RAM, réseau, disque en temps réel. <strong>Loki + Promtail</strong> centralise tous les logs des containers — plus besoin de se connecter en SSH pour lire les logs. Et <strong>Alertmanager</strong> envoie des alertes en cas de seuil dépassé ou de container down. Tout est accessible via des sous-domaines HTTPS sécurisés par NPM.</div>
     <div class="eyebrow">US-DEV-14 · US-DEV-15 · US-DEV-16</div>
     <h2>Monitoring</h2>
     <div class="mon-grid">
@@ -577,14 +601,6 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <div class="mon-item"><span class="mon-dot" style="background:#f6c026"></span><span><strong>Loki + Promtail</strong> — centralisation des logs containers</span></div>
         <div class="mon-item"><span class="mon-dot" style="background:#ef4444"></span><span><strong>Alertmanager</strong> — alertes sur seuils critiques</span></div>
         <div class="mon-item"><span class="mon-dot" style="background:var(--success)"></span><span><strong>cAdvisor</strong> — métriques par container</span></div>
-      </div>
-      <div class="mon-card">
-        <div class="mon-card-title">Ce qui reste à connecter côté app</div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--warning)"></span><span>Endpoint <code>/health</code> et <code>/ready</code> sur le backend (US-DEV-17)</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--warning)"></span><span>Driver log Loki sur les containers wordle-api et wordle-front</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--warning)"></span><span>Labels Prometheus scrape sur le container backend</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--warning)"></span><span>Dashboard Grafana dédié à l'app Wordle</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--warning)"></span><span>Règles d'alerte spécifiques (app down, taux d'erreur 5xx élevé)</span></div>
       </div>
       <div class="mon-card" style="grid-column:1/-1">
         <div class="mon-card-title">Accès monitoring NAS</div>
@@ -598,93 +614,56 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
     </div>
   </section>
 
-  <!-- SLIDE 8 — Gaps & Priorités -->
-  <section class="slide" id="s8">
-    <div class="eyebrow">Avant déploiement NAS</div>
-    <h2>Ce qu'il reste</h2>
-    <div class="priority-col">
-      <div class="prio-block">
-        <div class="prio-header prio-p0">P0 — Bloquant déploiement</div>
-        <div class="prio-item">Corriger CORS — <code>allow_origin_regex</code> → variable env <code>CORS_ORIGINS</code></div>
-        <div class="prio-item">VITE_API_URL — ARG Docker + build-args dans cd.yml (baked à la compilation Vite)</div>
-        <div class="prio-item">Supprimer le fallback insécurisé de <code>SECRET_KEY</code></div>
-        <div class="prio-item">Tester la CD end-to-end (premier merge sur main + vérif GHCR)</div>
-        <div class="prio-item">Rendre les packages GHCR publics ou configurer docker login sur le NAS</div>
-      </div>
-      <div class="prio-block">
-        <div class="prio-header prio-p1">P1 — Pour complétion</div>
-        <div class="prio-item">Créer le docker-compose.yml sur le NAS (webnet, labels Watchtower, DB isolée)</div>
-        <div class="prio-item">Configurer les 2 Proxy Hosts NPM + CNAME OVH</div>
-        <div class="prio-item">Endpoints <code>/health</code> et <code>/ready</code> sur le backend</div>
-        <div class="prio-item">Séparation formelle dev / prod (US-DEV-13)</div>
-      </div>
-      <div class="prio-block">
-        <div class="prio-header prio-p2">P2 — Bonus / Robustesse</div>
-        <div class="prio-item">Orchestrateur avec HA — Docker Swarm replicas (requis par barème)</div>
-        <div class="prio-item">Brancher app sur Prometheus + Loki (logs + métriques)</div>
-        <div class="prio-item">Dashboard Grafana dédié Wordle</div>
-        <div class="prio-item">Alertes spécifiques app (Alertmanager)</div>
-        <div class="prio-item"><code>.env.example</code> versionné dans le repo</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SLIDE 9 — Justification des choix -->
+  <!-- SLIDE 8 — Justification des choix -->
   <section class="slide" id="s9">
+    <div class="notes"><strong>GitHub Actions</strong> parce que c'est natif au repo — le GITHUB_TOKEN donne accès à GHCR automatiquement, sans configurer de secret. <strong>GHCR</strong> dans le même écosystème, gratuit, lié directement au repo. <strong>Watchtower</strong> pour sa légèreté sur un NAS — pas besoin de Kubernetes, juste un label sur le container. <strong>FastAPI</strong> réutilise notre code du module Tests précédent, avec l'avantage de l'async et de l'OpenAPI auto-générée. <strong>React + Vite</strong> pour migrer naturellement depuis le vanilla JS avec des builds ultra-rapides. <strong>PostgreSQL</strong> pour la robustesse ACID en production. Et <strong>NPM</strong> était déjà sur notre NAS avec une UI simple pour Let's Encrypt.</div>
     <div class="eyebrow">Critère barème — choix DevOps justifiés</div>
     <h2>Justification des choix techniques</h2>
     <div style="overflow-x:auto">
     <table class="choice-table">
       <thead>
         <tr>
-          <th>Outil choisi</th>
-          <th>Alternatives</th>
-          <th>Pourquoi ce choix</th>
+          <th style="width:35%">Outil choisi</th>
+          <th>Alternatives considérées</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><span class="choice-tool">GitHub Actions</span></td>
+          <td><span class="choice-tool">GitHub Actions</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Natif GitHub · GITHUB_TOKEN auto · zéro infra</div></td>
           <td><span class="choice-vs">Jenkins · GitLab CI · CircleCI</span></td>
-          <td class="choice-why">Intégré nativement à GitHub, <code>GITHUB_TOKEN</code> fourni automatiquement pour GHCR, marketplace riche, zéro infrastructure CI à gérer</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">GHCR</span></td>
+          <td><span class="choice-tool">GHCR</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Même écosystème · auth auto · lié au repo</div></td>
           <td><span class="choice-vs">Docker Hub · Harbor · ECR</span></td>
-          <td class="choice-why">Même écosystème que GitHub Actions, auth via <code>GITHUB_TOKEN</code> sans secret supplémentaire, packages liés au repo, gratuit pour dépôts publics</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">Watchtower</span></td>
+          <td><span class="choice-tool">Watchtower</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Léger · zéro config · polling GHCR natif</div></td>
           <td><span class="choice-vs">Flux (GitOps) · ArgoCD · deploy SSH manuel</span></td>
-          <td class="choice-why">Solution légère adaptée à un NAS Ugreen (pas de Kubernetes), déploiement zero-config via label container, polling GHCR natif</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">FastAPI + Python 3.14</span></td>
+          <td><span class="choice-tool">FastAPI + Python 3.14</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Réutilise module Tests · async · OpenAPI auto</div></td>
           <td><span class="choice-vs">Django · Flask · Node/Express</span></td>
-          <td class="choice-why">Réutilise le code du module Tests précédent, async natif, OpenAPI auto-généré, type hints pour la robustesse</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">React 19 + Vite</span></td>
+          <td><span class="choice-tool">React 19 + Vite</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Migration naturelle vanilla JS · build rapide</div></td>
           <td><span class="choice-vs">Next.js · Vue · Vanilla JS</span></td>
-          <td class="choice-why">SPA légère servie par nginx, Vite build ultra-rapide, migration naturelle depuis le HTML/JS vanilla du module précédent</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">PostgreSQL 16</span></td>
+          <td><span class="choice-tool">PostgreSQL 16</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">ACID · alpine léger · SQLAlchemy natif</div></td>
           <td><span class="choice-vs">MySQL · SQLite · MongoDB</span></td>
-          <td class="choice-why">ACID, robuste en production, <code>postgres:16-alpine</code> image légère, support natif SQLAlchemy, adapté au modèle relationnel (utilisateurs, parties)</td>
         </tr>
         <tr>
-          <td><span class="choice-tool">NPM (Nginx Proxy Manager)</span></td>
+          <td><span class="choice-tool">NPM (Nginx Proxy Manager)</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Déjà sur le NAS · UI Let's Encrypt · sans reconfig</div></td>
           <td><span class="choice-vs">Traefik · Caddy · HAProxy</span></td>
-          <td class="choice-why">Déjà déployé sur le NAS, UI web pour Let's Encrypt, configuration via interface sans recharger l'infra</td>
         </tr>
       </tbody>
     </table>
     </div>
   </section>
 
-  <!-- SLIDE 10 — Bilan vs barème -->
+  <!-- SLIDE 9 — Bilan vs barème -->
   <section class="slide" id="s10">
+    <div class="notes">En bilan : notre <strong>pipeline CI</strong> est complète — lint, tests, build, parallélisée. La <strong>CD</strong> est configurée avec workflow_run et Watchtower pour le déploiement automatique. <strong>Toutes les features métier</strong> sont implémentées, y compris les achievements. Nos <strong>choix DevOps</strong> sont tous justifiés et argumentés. La <strong>sécurité</strong> est appliquée — réseau isolé, no-new-privileges, secrets en .env. Le monitoring est opérationnel sur le NAS. Il nous reste à finaliser le déploiement réel sur le NAS et à brancher l'app Wordle sur la stack Prometheus/Loki existante.</div>
     <div class="eyebrow">Auto-évaluation</div>
     <h2>Bilan vs barème</h2>
     <div style="overflow-x:auto">
@@ -751,6 +730,8 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
   <button class="nav-btn" id="next" title="Suivant">→</button>
 </div>
 
+<button id="notes-btn" title="Afficher/masquer les notes (N)">Notes [N]</button>
+
 <script>
 const slides = document.querySelectorAll('.slide');
 const total = slides.length;
@@ -796,6 +777,11 @@ document.getElementById('next').addEventListener('click', () => goTo(current+1))
 document.addEventListener('keydown', e => {
   if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); goTo(current+1); }
   if(e.key==='ArrowLeft'||e.key==='ArrowUp') { e.preventDefault(); goTo(current-1); }
+  if(e.key==='n'||e.key==='N') { document.body.classList.toggle('show-notes'); }
+});
+
+document.getElementById('notes-btn').addEventListener('click', () => {
+  document.body.classList.toggle('show-notes');
 });
 
 document.getElementById('tot').textContent = String(total).padStart(2,'0');
