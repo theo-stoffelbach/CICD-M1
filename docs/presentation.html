@@ -286,7 +286,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <span class="tech-badge">GitHub Actions</span>
         <span class="tech-badge">GHCR</span>
         <span class="tech-badge">Nginx</span>
-        <span class="tech-badge">Synology NAS</span>
+        <span class="tech-badge">Ugreen NAS</span>
       </div>
     </div>
   </section>
@@ -297,7 +297,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
       <div class="eyebrow">Vue d'ensemble</div>
       <h2>Architecture<br>globale</h2>
       <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem">
-        Stack fullstack containerisée sur un NAS Synology personnel, exposée via Nginx Proxy Manager avec SSL automatique Let's Encrypt.<br><br>
+        Stack fullstack containerisée sur un NAS Ugreen personnel, exposée via Nginx Proxy Manager avec SSL automatique Let's Encrypt.<br><br>
         Le déploiement est entièrement automatisé : GitHub Actions build et pousse les images sur GHCR, Watchtower détecte les nouvelles versions et redémarre les containers.
       </p>
       <div style="display:flex;flex-direction:column;gap:.5rem">
@@ -497,11 +497,11 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <div class="feat-desc">Classement par score total et meilleure série — endpoint + UI</div>
         <div style="margin-top:.5rem"><span class="badge badge-ok">✓ US-MET-07</span></div>
       </div>
-      <div class="feat-card miss">
+      <div class="feat-card done">
         <div class="stripe"></div>
         <div class="feat-name">Achievements / Badges</div>
-        <div class="feat-desc">1ère victoire, série 7 jours, victoire en 1 coup — non implémenté</div>
-        <div style="margin-top:.5rem"><span class="badge badge-err">✗ US-MET-08</span></div>
+        <div class="feat-desc">1ère victoire, série 7 jours, victoire en 1 coup — détection + stockage + affichage UI</div>
+        <div style="margin-top:.5rem"><span class="badge badge-ok">✓ US-MET-08</span></div>
       </div>
       <div class="feat-card done">
         <div class="stripe"></div>
@@ -515,7 +515,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
   <!-- SLIDE 6 — Infrastructure & Sécurité -->
   <section class="slide" id="s6">
     <div class="infra-left">
-      <div class="eyebrow">NAS Synology</div>
+      <div class="eyebrow">NAS Ugreen</div>
       <h2 style="font-size:1.5rem;margin-bottom:1rem">Infrastructure</h2>
       <div class="card">
         <div style="font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem">Services transversaux actifs</div>
@@ -613,7 +613,6 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
       </div>
       <div class="prio-block">
         <div class="prio-header prio-p1">P1 — Pour complétion</div>
-        <div class="prio-item">Achievements / Badges (US-MET-08) — requis par le barème</div>
         <div class="prio-item">Créer le docker-compose.yml sur le NAS (webnet, labels Watchtower, DB isolée)</div>
         <div class="prio-item">Configurer les 2 Proxy Hosts NPM + CNAME OVH</div>
         <div class="prio-item">Endpoints <code>/health</code> et <code>/ready</code> sur le backend</div>
@@ -657,7 +656,7 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <tr>
           <td><span class="choice-tool">Watchtower</span></td>
           <td><span class="choice-vs">Flux (GitOps) · ArgoCD · deploy SSH manuel</span></td>
-          <td class="choice-why">Solution légère adaptée à un NAS Synology (pas de Kubernetes), déploiement zero-config via label container, polling GHCR natif</td>
+          <td class="choice-why">Solution légère adaptée à un NAS Ugreen (pas de Kubernetes), déploiement zero-config via label container, polling GHCR natif</td>
         </tr>
         <tr>
           <td><span class="choice-tool">FastAPI + Python 3.14</span></td>
@@ -720,8 +719,8 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         </tr>
         <tr>
           <td><div class="crit-name">Features métier complètes</div></td>
-          <td><span class="badge badge-warn">⚠ Partiel</span></td>
-          <td class="choice-why">7/8 features : compte, historique, scoring, streak, leaderboard, intégration front↔back ✓. Achievements/Badges manquants ✗</td>
+          <td><span class="badge badge-ok">✓ Fait</span></td>
+          <td class="choice-why">8/8 features : compte, historique, scoring, streak, leaderboard, achievements/badges, intégration front↔back ✓</td>
         </tr>
         <tr>
           <td><div class="crit-name">Orchestrateur + Haute disponibilité</div></td>
