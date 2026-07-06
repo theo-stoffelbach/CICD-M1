@@ -144,6 +144,30 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
   background:var(--surface);letter-spacing:.05em;
 }
 
+/* ─── SLIDE Démo ─────────────────────────────────────── */
+#sDemo{align-items:center;text-align:center}
+.demo-glow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:70%;height:70%;
+  background:radial-gradient(ellipse at center,rgba(79,156,249,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.demo-content{position:relative;z-index:1}
+.demo-title{
+  font-size:6rem;font-weight:800;letter-spacing:-.05em;line-height:1;margin-top:.5rem;
+  background:linear-gradient(135deg,var(--text) 55%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.demo-qr{
+  width:230px;height:230px;margin:1.75rem auto 0;display:block;
+  border-radius:14px;background:#000;padding:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+}
+.demo-url{
+  display:block;margin-top:1rem;font-family:var(--mono);font-size:.85rem;
+  color:var(--accent);text-decoration:none;letter-spacing:.02em;
+}
+
 /* ─── SLIDE 2 — Architecture ─────────────────────────── */
 #s2{flex-direction:row;gap:4rem}
 .arch-left{flex:0 0 320px}
@@ -515,6 +539,17 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <div class="feat-desc">Auth, jeu, profil et historique en React. JWT dans localStorage → header Authorization</div>
         <div style="margin-top:.5rem"><span class="badge badge-ok">✓ US-MET-09</span></div>
       </div>
+    </div>
+  </section>
+
+  <!-- SLIDE DÉMO -->
+  <section class="slide" id="sDemo">
+    <div class="demo-glow"></div>
+    <div class="demo-content">
+      <div class="eyebrow">Démonstration en direct</div>
+      <div class="demo-title">Démo</div>
+      <img class="demo-qr" src="frame.png" alt="QR code vers l'application Wordle" />
+      <a class="demo-url" href="https://wordle.theo-stoffelbach.fr/">wordle.theo-stoffelbach.fr</a>
     </div>
   </section>
 
