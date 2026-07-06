@@ -1,5 +1,8 @@
 # Wordle — Projet CI/CD (M1 Ynov)
 
+![CI](https://github.com/theo-stoffelbach/CICD-M1/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/theo-stoffelbach/CICD-M1/actions/workflows/cd.yml/badge.svg)
+
 > 🎮 Jeu Wordle fullstack conteneurisé avec pipeline CI/CD, authentification, scoring et monitoring.
 
 ## 🚀 Stack technique
