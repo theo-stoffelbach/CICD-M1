@@ -210,23 +210,28 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 .feat-desc{font-size:.68rem;color:var(--muted);line-height:1.4}
 
 /* ─── SLIDE 6 — Infra & Sécurité ────────────────────── */
-#s6{flex-direction:row;gap:3rem}
-.infra-left,.infra-right{flex:1}
-.service-row{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--surface2)}
+#s6{flex-direction:row;gap:3rem;align-items:stretch}
+.infra-left,.infra-right{flex:1;display:flex;flex-direction:column}
+.infra-left .card,.infra-right .card{flex:1;display:flex;flex-direction:column}
+.service-row{display:flex;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--surface2)}
 .service-row:last-child{border-bottom:none}
 .service-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .service-name{font-size:.8rem;font-weight:500;flex:1}
 .service-role{font-size:.7rem;color:var(--muted)}
-.sec-item{display:flex;align-items:flex-start;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--surface2);font-size:.78rem}
+.sec-item{display:flex;align-items:flex-start;gap:.7rem;padding:.6rem 0;border-bottom:1px solid var(--surface2);font-size:.78rem}
 .sec-item:last-child{border-bottom:none}
 .sec-icon{font-size:.9rem;flex-shrink:0;margin-top:.05rem}
 
 /* ─── SLIDE 7 — Monitoring ───────────────────────────── */
-#s7 .mon-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.2rem}
-.mon-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem}
-.mon-card-title{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem}
+#s7 .mon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-top:1rem}
+#s7 .mon-bar{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-top:.85rem}
+.mon-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem}
+.mon-card-title{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem}
 .mon-item{display:flex;align-items:center;gap:.6rem;font-size:.78rem;padding:.3rem 0}
 .mon-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mon-tool-name{font-size:.82rem;font-weight:600;margin-bottom:.2rem;color:var(--text)}
+.mon-tool-desc{font-size:.7rem;color:var(--muted);line-height:1.45}
+.mon-tool-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-bottom:.5rem}
 
 /* ─── SLIDE 8 — Gaps & Priorités ────────────────────── */
 #s8 .priority-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.2rem}
@@ -560,6 +565,8 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Réseau interne isolé pour la DB</strong><br><span style="color:var(--muted);font-size:.7rem">PostgreSQL unreachable depuis Internet, réseau bridge interne</span></div></div>
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Ports non exposés côté app</strong><br><span style="color:var(--muted);font-size:.7rem">Front et Back sur webnet, NPM assure le seul point d'entrée</span></div></div>
         <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Secrets via .env chmod 600</strong><br><span style="color:var(--muted);font-size:.7rem">Variables injectées au runtime, jamais dans le code</span></div></div>
+        <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Docker Socket Proxy</strong><br><span style="color:var(--muted);font-size:.7rem">Socket Docker jamais exposé directement aux services</span></div></div>
+        <div class="sec-item"><span class="sec-icon">✅</span><div><strong>Images multi-stage minimales</strong><br><span style="color:var(--muted);font-size:.7rem">python:3.14-slim et nginx:alpine — surface d'attaque réduite</span></div></div>
       </div>
     </div>
   </section>
@@ -570,21 +577,37 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
     <h2>Monitoring</h2>
     <div class="mon-grid">
       <div class="mon-card">
-        <div class="mon-card-title">Stack NAS — déjà en place</div>
-        <div class="mon-item"><span class="mon-dot" style="background:#e6523a"></span><span><strong>Prometheus</strong> — collecte des métriques (cAdvisor + Node Exporter)</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:#f46800"></span><span><strong>Grafana</strong> — dashboards CPU, RAM, réseau, disque</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:#f6c026"></span><span><strong>Loki + Promtail</strong> — centralisation des logs containers</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:#ef4444"></span><span><strong>Alertmanager</strong> — alertes sur seuils critiques</span></div>
-        <div class="mon-item"><span class="mon-dot" style="background:var(--success)"></span><span><strong>cAdvisor</strong> — métriques par container</span></div>
+        <div class="mon-tool-dot" style="background:#e6523a"></div>
+        <div class="mon-tool-name">Prometheus</div>
+        <div class="mon-tool-desc">Collecte des métriques toutes les 15 s via cAdvisor et Node Exporter</div>
       </div>
-      <div class="mon-card" style="grid-column:1/-1">
+      <div class="mon-card">
+        <div class="mon-tool-dot" style="background:#f46800"></div>
+        <div class="mon-tool-name">Grafana</div>
+        <div class="mon-tool-desc">Dashboards CPU, RAM, réseau, disque — accessibles via HTTPS sur le NAS</div>
+      </div>
+      <div class="mon-card">
+        <div class="mon-tool-dot" style="background:#f6c026"></div>
+        <div class="mon-tool-name">Loki + Promtail</div>
+        <div class="mon-tool-desc">Centralisation des logs de tous les containers — plus besoin de SSH pour lire les logs</div>
+      </div>
+      <div class="mon-card">
+        <div class="mon-tool-dot" style="background:#ef4444"></div>
+        <div class="mon-tool-name">Alertmanager</div>
+        <div class="mon-tool-desc">Alertes sur seuils critiques (CPU, mémoire, container down) avec notification</div>
+      </div>
+    </div>
+    <div class="mon-bar">
+      <div class="mon-card">
+        <div class="mon-card-title">Métriques collectées</div>
+        <div class="mon-item"><span class="mon-dot" style="background:var(--success)"></span><span><strong>cAdvisor</strong> — métriques par container (CPU, RAM, I/O réseau)</span></div>
+        <div class="mon-item"><span class="mon-dot" style="background:var(--accent)"></span><span><strong>Node Exporter</strong> — métriques hôte NAS (disque, charge, réseau)</span></div>
+      </div>
+      <div class="mon-card">
         <div class="mon-card-title">Accès monitoring NAS</div>
-        <div style="display:flex;gap:2rem;font-size:.76rem;flex-wrap:wrap">
-          <span><code>192.168.1.3:8181</code> — Nginx Proxy Manager</span>
-          <span><code>192.168.1.3:3020</code> — Watchtower UI (WUD)</span>
-          <span><code style="color:var(--muted)">grafana.theo-stoffelbach.fr</code> — Grafana (via NPM)</span>
-          <span><code style="color:var(--muted)">loki.theo-stoffelbach.fr</code> — Loki (via NPM)</span>
-        </div>
+        <div class="mon-item"><span class="mon-dot" style="background:var(--muted)"></span><span><code>192.168.1.3:8181</code> — Nginx Proxy Manager</span></div>
+        <div class="mon-item"><span class="mon-dot" style="background:var(--muted)"></span><span><code>192.168.1.3:3020</code> — Watchtower UI (WUD)</span></div>
+        <div class="mon-item"><span class="mon-dot" style="background:#f46800"></span><span><code>grafana.theo-stoffelbach.fr</code> — Grafana (NPM)</span></div>
       </div>
     </div>
   </section>
