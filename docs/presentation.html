@@ -210,9 +210,8 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 .feat-desc{font-size:.68rem;color:var(--muted);line-height:1.4}
 
 /* ─── SLIDE 6 — Infra & Sécurité ────────────────────── */
-#s6{flex-direction:row;gap:3rem;align-items:stretch}
-.infra-left,.infra-right{flex:1;display:flex;flex-direction:column}
-.infra-left .card,.infra-right .card{flex:1;display:flex;flex-direction:column}
+#s6{flex-direction:row;gap:3rem;align-items:flex-start}
+.infra-left,.infra-right{flex:1}
 .service-row{display:flex;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--surface2)}
 .service-row:last-child{border-bottom:none}
 .service-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -245,7 +244,8 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
 .prio-item::before{content:'›';color:var(--border);flex-shrink:0}
 
 /* ─── SLIDE 9 — Justification ───────────────────────── */
-#s9 .choice-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:1.2rem}
+#s9 .choice-table{width:auto;border-collapse:collapse;font-size:.78rem;margin-top:1.2rem}
+#s9 .choice-table .col-vs{white-space:nowrap;width:1%}
 #s9 .choice-table th{
   text-align:left;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted);padding:.5rem .8rem;
@@ -616,42 +616,42 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
   <section class="slide" id="s9">
     <div class="eyebrow">Critère barème — choix DevOps justifiés</div>
     <h2>Justification des choix techniques</h2>
-    <div style="overflow-x:auto">
+    <div style="overflow-x:auto;display:flex;justify-content:center">
     <table class="choice-table">
       <thead>
         <tr>
-          <th style="width:35%">Outil choisi</th>
-          <th>Alternatives considérées</th>
+          <th>Outil choisi</th>
+          <th class="col-vs">Alternatives considérées</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><span class="choice-tool">GitHub Actions</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Natif GitHub · GITHUB_TOKEN auto · zéro infra</div></td>
-          <td><span class="choice-vs">Jenkins · GitLab CI · CircleCI</span></td>
+          <td class="col-vs"><span class="choice-vs">Jenkins · GitLab CI · CircleCI</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">GHCR</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Même écosystème · auth auto · lié au repo</div></td>
-          <td><span class="choice-vs">Docker Hub · Harbor · ECR</span></td>
+          <td class="col-vs"><span class="choice-vs">Docker Hub · Harbor · ECR</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">Watchtower</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Léger · zéro config · polling GHCR natif</div></td>
-          <td><span class="choice-vs">Flux (GitOps) · ArgoCD · deploy SSH manuel</span></td>
+          <td class="col-vs"><span class="choice-vs">Flux (GitOps) · ArgoCD · deploy SSH manuel</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">FastAPI + Python 3.14</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Réutilise module Tests · async · OpenAPI auto</div></td>
-          <td><span class="choice-vs">Django · Flask · Node/Express</span></td>
+          <td class="col-vs"><span class="choice-vs">Django · Flask · Node/Express</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">React 19 + Vite</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Migration naturelle vanilla JS · build rapide</div></td>
-          <td><span class="choice-vs">Next.js · Vue · Vanilla JS</span></td>
+          <td class="col-vs"><span class="choice-vs">Next.js · Vue · Vanilla JS</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">PostgreSQL 16</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">ACID · alpine léger · SQLAlchemy natif</div></td>
-          <td><span class="choice-vs">MySQL · SQLite · MongoDB</span></td>
+          <td class="col-vs"><span class="choice-vs">MySQL · SQLite · MongoDB</span></td>
         </tr>
         <tr>
           <td><span class="choice-tool">NPM (Nginx Proxy Manager)</span><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Déjà sur le NAS · UI Let's Encrypt · sans reconfig</div></td>
-          <td><span class="choice-vs">Traefik · Caddy · HAProxy</span></td>
+          <td class="col-vs"><span class="choice-vs">Traefik · Caddy · HAProxy</span></td>
         </tr>
       </tbody>
     </table>
@@ -661,12 +661,12 @@ code,.code{font-family:var(--mono);font-size:.75rem;background:var(--surface2);p
   <!-- SLIDE 9 — Bilan vs barème -->
   <section class="slide" id="s10">
     <div class="eyebrow">Auto-évaluation</div>
-    <h2>Bilan vs barème</h2>
+    <h2>Bilan</h2>
     <div style="overflow-x:auto">
     <table class="bilan-table">
       <thead>
         <tr>
-          <th style="width:30%">Critère professeur</th>
+          <th style="width:30%">Critère</th>
           <th style="width:12%">Statut</th>
           <th>Détail</th>
         </tr>
