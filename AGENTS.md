@@ -76,3 +76,16 @@ Ouvrir frontend/index.html dans le navigateur (l'API doit tourner sur :8000)
 - `FakeDictionary` doit rester déterministe (`get_random_word` retourne toujours le premier secret).
 - La normalisation des accents est faite dans `_normalize()` (domain/game.py + infra/file_dictionary.py).
 - `valid_*.txt` contient les mots acceptés comme tentatives ; `secrets_*.txt` contient les mots pouvant être tirés comme secret.
+
+
+---
+
+## 🤖 Reviews de PR GitHub par agents IA
+
+Quand un agent IA rédige une review (ou un commentaire de review) sur une PR GitHub, il DOIT signer en indiquant son modèle entre parenthèses, à la fin de la review.
+
+Format attendu :
+- Signature en fin de review : `— Kimi Code (kimi-k2)`, `— Claude (claude-sonnet-4.5)`, `— Gemini (gemini-2.5-pro)`, etc.
+- Le nom du modèle exact doit être entre parenthèses, pas seulement le nom de l'outil.
+
+Objectif : pouvoir identifier quel modèle a produit chaque review et comparer leur qualité.
