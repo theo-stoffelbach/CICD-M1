@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Integer, func
@@ -7,9 +7,20 @@ from sqlalchemy.orm import Session
 
 from auth_utils import get_current_user
 from database import get_db
-from engagement import DAILY_GAME_MODE, build_achievements, compute_best_streak, compute_current_streak
+from engagement import (
+    DAILY_GAME_MODE,
+    build_achievements,
+    compute_best_streak,
+    compute_current_streak,
+)
 from models import GameHistory, User
-from schemas import DailyLeaderboardEntry, GameHistoryOut, LeaderboardEntry, LeaderboardsResponse, UserProfile
+from schemas import (
+    DailyLeaderboardEntry,
+    GameHistoryOut,
+    LeaderboardEntry,
+    LeaderboardsResponse,
+    UserProfile,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -68,7 +79,7 @@ def get_leaderboard(
     db: Session = Depends(get_db),
 ):
     """Retourne le classement global historique par score total."""
-    return _build_leaderboards(db, limit, date.today()).current_score
+    return _build_leaderboards(db, limit, datetime.now(timezone.utc).date()).current_score
 
 
 @router.get("/leaderboards", response_model=LeaderboardsResponse)
@@ -78,7 +89,7 @@ def get_leaderboards(
     db: Session = Depends(get_db),
 ):
     """Retourne les classements score, série, moyenne et défi du jour."""
-    return _build_leaderboards(db, limit, day or date.today())
+    return _build_leaderboards(db, limit, day or datetime.now(timezone.utc).date())
 
 
 def _build_leaderboards(db: Session, limit: int, daily_date: date) -> LeaderboardsResponse:

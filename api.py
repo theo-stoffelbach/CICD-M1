@@ -9,28 +9,32 @@ Endpoints :
 
 import logging
 import os
+import time
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import time
-
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel
-from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from auth_utils import get_current_user, get_current_user_optional
 from database import engine, get_db
 from domain.errors import GameAlreadyOverError, InvalidWordError, InvalidWordLengthError
 from domain.game import Game
-from engagement import CLASSIC_GAME_MODE, DAILY_GAME_MODE, DAILY_SCORE_MULTIPLIER, compute_game_score
+from engagement import (
+    CLASSIC_GAME_MODE,
+    DAILY_GAME_MODE,
+    DAILY_SCORE_MULTIPLIER,
+    compute_game_score,
+)
 from infra.file_dictionary import FileDictionary
 from models import Base, GameHistory
 from routers import auth, users
@@ -182,7 +186,7 @@ def create_daily_game(
 ):
     """Démarre le défi du jour, identique pour tous les joueurs d'une langue."""
     _validate_language(body.language)
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     user_id = current_user.id
     if _has_played_daily_challenge(db, user_id, body.language, today):
         raise HTTPException(status_code=409, detail="Défi du jour déjà joué.")
@@ -267,7 +271,7 @@ def ready(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         return {"status": "ready"}
-    except Exception as e:
+    except SQLAlchemyError as e:
         raise HTTPException(status_code=503, detail=f"Database not ready: {e}")
 
 

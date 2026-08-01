@@ -1,7 +1,8 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
-from typing import Iterable
+from datetime import date, datetime, timedelta, timezone
+from itertools import pairwise
 
 from domain.game import MAX_ATTEMPTS
 
@@ -69,7 +70,7 @@ def compute_current_streak(history: Iterable, today: date | None = None) -> int:
     if not winning_dates:
         return 0
 
-    current = today or date.today()
+    current = today or datetime.now(timezone.utc).date()
     if current not in winning_dates:
         current = current - timedelta(days=1)
 
@@ -87,7 +88,7 @@ def compute_best_streak(history: Iterable) -> int:
 
     best = 1
     current = 1
-    for previous, day in zip(ordered_dates, ordered_dates[1:]):
+    for previous, day in pairwise(ordered_dates):
         if day == previous + timedelta(days=1):
             current += 1
         else:
