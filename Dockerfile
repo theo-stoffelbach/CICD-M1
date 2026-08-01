@@ -1,6 +1,10 @@
 # ─── Étape 1 : Image de base ─────────────────────────────────────────────────
-# python:3.14-slim = version stable, légère, sans outils de dev inutiles
-FROM python:3.14-slim
+# python:3.14-alpine = base musl, sans perl-base (paquet Essential de Debian
+# trixie, non purgeable, affecté par 4 CVE CRITICAL sans fix au 2026-07-30 :
+# CVE-2026-13221, CVE-2026-42496, CVE-2026-57433, CVE-2026-8376).
+# Toutes les deps de requirements.txt ont des wheels musllinux (vérifié,
+# psycopg2-binary ≥ 2.9.10 inclus) : aucune compilation nécessaire.
+FROM python:3.14-alpine
 
 # ─── Étape 2 : Répertoire de travail ─────────────────────────────────────────
 # Toutes les commandes suivantes s'exécuteront dans /app
