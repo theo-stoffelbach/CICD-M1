@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -75,7 +75,7 @@ def test_leaderboards_expose_score_streak_average_and_daily_rankings():
             days_ago=0,
             attempts_count=1,
             mode=DAILY_GAME_MODE,
-            daily_date=date.today(),
+            daily_date=datetime.now(timezone.utc).date(),
             multiplier=DAILY_SCORE_MULTIPLIER,
         )
 
@@ -103,7 +103,7 @@ def test_daily_challenge_rejects_authenticated_replay():
             days_ago=0,
             attempts_count=2,
             mode=DAILY_GAME_MODE,
-            daily_date=date.today(),
+            daily_date=datetime.now(timezone.utc).date(),
         )
 
         response = client.post("/game/daily", json={"language": "fr"}, headers=_auth_headers(user.id))
@@ -142,7 +142,7 @@ def _create_user(db, username: str) -> User:
         username=username,
         email=f"{username}@example.com",
         hashed_password="not-used",
-        created_at=datetime.today() - timedelta(days=10),
+        created_at=datetime.now(timezone.utc) - timedelta(days=10),
     )
     db.add(user)
     db.commit()
@@ -170,7 +170,7 @@ def _add_history(
         mode=mode,
         daily_date=daily_date,
         created_at=datetime.combine(
-            datetime.today().date() - timedelta(days=days_ago),
+            datetime.now(timezone.utc).date() - timedelta(days=days_ago),
             datetime.min.time(),
         ),
     ))
