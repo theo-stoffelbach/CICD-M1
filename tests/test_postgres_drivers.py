@@ -20,6 +20,7 @@ def test_database_initializes_postgres_driver_without_connecting(driver):
         capture_output=True,
         text=True,
         timeout=20,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == driver
