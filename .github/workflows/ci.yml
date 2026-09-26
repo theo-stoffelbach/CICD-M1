@@ -75,3 +75,10 @@ jobs:
 
       - name: Build Docker images
         run: docker compose build backend frontend
+
+      - name: Check PostgreSQL driver in the runtime image (no DB connection)
+        run: >-
+          docker compose run --rm --no-deps
+          -e DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:1/ci
+          --entrypoint python backend
+          -c "import database; assert database.engine.dialect.driver == 'psycopg'"

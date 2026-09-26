@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic[email]
 sqlalchemy
 psycopg2-binary
+psycopg[binary]==3.3.6
 alembic
 bcrypt
 python-jose[cryptography]
@@ -10,4 +11,3 @@ python-multipart
 httpx
 pytest-asyncio
 prometheus-client
-
