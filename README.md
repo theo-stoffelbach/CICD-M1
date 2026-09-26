@@ -100,6 +100,13 @@ pytest tests/ --cov=domain -v
 | `POST` | `/auth/register` | Créer un compte |
 | `POST` | `/auth/login` | Se connecter (retourne JWT) |
 
+Après cinq mots de passe incorrects pour une même adresse email en cinq
+minutes, `/auth/login` répond `429` avec `Retry-After`. Une connexion valide
+efface le compteur. Cette limite est conservée en mémoire dans l'unique
+processus Uvicorn configuré par le Dockerfile ; elle est remise à zéro au
+redémarrage. Si l'API passe à plusieurs workers ou réplicas, remplacer ce
+stockage par un cache partagé avant la mise à l'échelle.
+
 ### Utilisateur (protégé par Bearer)
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
