@@ -6,7 +6,7 @@ psycopg2-binary
 psycopg[binary]==3.3.6
 alembic
 bcrypt
-PyJWT>=2.10.1
+PyJWT>=2.15.1
 python-multipart
 httpx
 pytest-asyncio
