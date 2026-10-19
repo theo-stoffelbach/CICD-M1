@@ -12,7 +12,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -186,7 +186,7 @@ def create_daily_game(
 ):
     """Démarre le défi du jour, identique pour tous les joueurs d'une langue."""
     _validate_language(body.language)
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     user_id = current_user.id
     if _has_played_daily_challenge(db, user_id, body.language, today):
         raise HTTPException(status_code=409, detail="Défi du jour déjà joué.")

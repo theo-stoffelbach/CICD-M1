@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Integer, func
@@ -79,7 +79,7 @@ def get_leaderboard(
     db: Session = Depends(get_db),
 ):
     """Retourne le classement global historique par score total."""
-    return _build_leaderboards(db, limit, datetime.now(timezone.utc).date()).current_score
+    return _build_leaderboards(db, limit, datetime.now(UTC).date()).current_score
 
 
 @router.get("/leaderboards", response_model=LeaderboardsResponse)
@@ -89,7 +89,7 @@ def get_leaderboards(
     db: Session = Depends(get_db),
 ):
     """Retourne les classements score, série, moyenne et défi du jour."""
-    return _build_leaderboards(db, limit, day or datetime.now(timezone.utc).date())
+    return _build_leaderboards(db, limit, day or datetime.now(UTC).date())
 
 
 def _build_leaderboards(db: Session, limit: int, daily_date: date) -> LeaderboardsResponse:

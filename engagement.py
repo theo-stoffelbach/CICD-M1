@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from itertools import pairwise
 
 from domain.game import MAX_ATTEMPTS
@@ -70,7 +70,7 @@ def compute_current_streak(history: Iterable, today: date | None = None) -> int:
     if not winning_dates:
         return 0
 
-    current = today or datetime.now(timezone.utc).date()
+    current = today or datetime.now(UTC).date()
     if current not in winning_dates:
         current = current - timedelta(days=1)
 
