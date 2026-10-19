@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 from engagement import (
@@ -15,7 +15,7 @@ def history_item(days_ago: int, is_won: bool = True, attempts_count: int = 3, sc
         attempts_count=attempts_count,
         score=score,
         created_at=datetime.combine(
-            datetime.now(timezone.utc).date() - timedelta(days=days_ago),
+            datetime.now(UTC).date() - timedelta(days=days_ago),
             datetime.min.time(),
         ),
     )
