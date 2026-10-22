@@ -18,8 +18,13 @@ WORKDIR /app
 # ─── Étape 4 : Dépendances ───────────────────────────────────────────────────
 # On copie D'ABORD requirements.txt seul pour profiter du cache Docker.
 # Si requirements.txt ne change pas, le layer pip reste en cache.
+# pip ne sert qu'ici : il est désinstallé dans la même couche. Le pip de l'image
+# de base embarque son propre certifi (2026.6.17 dans pip 26.2.1, déclaré dans
+# pip/_vendor/bom.cdx.json), vulnérable à GHSA-6q48-6c7w-9gw2 (scan Trivy du
+# NAS du 2026-10-22).
 COPY --chown=app:app requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip uninstall -y pip
 
 # ─── Étape 5 : Code source ───────────────────────────────────────────────────
 # On copie tout le projet (sauf ce qui est dans .dockerignore)

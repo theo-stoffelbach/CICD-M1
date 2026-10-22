@@ -9,5 +9,6 @@ bcrypt
 PyJWT>=2.15.1
 python-multipart
 httpx
+certifi>=2026.10.19
 pytest-asyncio
 prometheus-client
