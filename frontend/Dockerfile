@@ -12,6 +12,11 @@ RUN npm run build
 # nginxinc/nginx-unprivileged tourne en user nginx (UID 101) et écoute sur
 # 8080 : pas de root dans le conteneur (audit NAS 2026-07-30). Tag épinglé.
 FROM nginxinc/nginx-unprivileged:1.29.5-alpine
+# La base épinglée n'est pas reconstruite à chaque correctif Alpine (brotli-libs 1.2.0,
+# CVE-2026-111497, corrigée le 22/10/2026) : on applique les mises à jour de sécurité.
+USER root
+RUN apk upgrade --no-cache
+USER 101
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
